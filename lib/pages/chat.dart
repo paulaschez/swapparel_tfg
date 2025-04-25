@@ -50,7 +50,7 @@ class _ChatState extends State<Chat> {
             SizedBox(height: size.height * 0.02),
             Expanded(
               child: Container(
-                padding: EdgeInsets.only(left: 20.0, right: 20.0, top: 50.0, bottom: 30.0),
+                padding: EdgeInsets.only(left: 20.0, right: 20.0, top: 50.0),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
@@ -62,27 +62,59 @@ class _ChatState extends State<Chat> {
                   children: [
                     OutgoingMessage(
                       size: size,
-                      mssg: "Hola, tengo que contarte una cosita",
+                      mssg: "Hola, tenemos que hablar",
                     ),
                     SizedBox(height: size.height * 0.017),
-                    OutgoingMessage(size: size, mssg: "Me caso!!!!"),
+                    OutgoingMessage(
+                      size: size,
+                      mssg: "Tenemos que entregar el trabajo hoy",
+                    ),
                     SizedBox(height: size.height * 0.017),
-                    IncomingMessage(size: size, mssg: "NO ME LO PUEDO CREER!"),
+                    IncomingMessage(size: size, mssg: "Lo tengo casi listo"),
                     Spacer(),
-                    Material(
-                      elevation: 5,
-                      child: Container(
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
+
+                    // Barra enviar mensajes
+                    SafeArea(
+                      child: Material(
+                        elevation: 5,
+                        borderRadius: BorderRadius.circular(30),
+                        child: Container(
+                          padding: EdgeInsets.only(
+                            left: size.width * 0.04,
+                            right: size.width * 0.03,
+                            top: size.width * 0.02,
+                            bottom: size.width * 0.02,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Color.fromARGB(255, 235, 236, 238),
+                            borderRadius: BorderRadius.circular(30),
+                            //border: Border.all(color:Colors.grey)
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  //textAlignVertical: TextAlignVertical.center,
+                                  decoration: InputDecoration(
+                                    border: InputBorder.none,
+                                    hintText: "Type a message",
+                                    hintStyle: TextStyle(color: Colors.black45),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      vertical: size.height * 0.01,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                              Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color:  Color.fromARGB(255, 228, 215, 231),
+                                  borderRadius: BorderRadius.circular(60),
+                                ),
+                                child: Icon(Icons.send, color:  Color(0Xffc199cd)),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -138,7 +170,7 @@ class IncomingMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Align(
-      alignment: Alignment.bottomRight,
+      alignment: Alignment.bottomLeft,
       child: IntrinsicWidth(
         child: Container(
           padding: EdgeInsets.all(10),
