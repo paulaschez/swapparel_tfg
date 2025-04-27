@@ -2,10 +2,14 @@ import 'package:chat_app/pages/chat.dart';
 import 'package:chat_app/pages/home.dart';
 import 'package:chat_app/pages/signin.dart';
 import 'package:chat_app/pages/signup.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+Future<void> main() async {
   runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  
 }
 
 class MyApp extends StatelessWidget {
@@ -20,7 +24,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const Chat(name: "Sara Martínez"),
+      home: const SignUp(),
     );
   }
 }
