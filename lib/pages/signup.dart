@@ -104,7 +104,7 @@ class _SignUpState extends State<SignUp> {
             ),
             Padding(
               padding: EdgeInsets.only(
-                top: size.height * 0.1,
+                top: size.height * 0.07,
               ), // Margen superior relativo
               child: Column(
                 children: [
@@ -131,111 +131,109 @@ class _SignUpState extends State<SignUp> {
                       ),
                     ),
                   ),
-                  SizedBox(height: size.height * 0.03), // Espaciado relativo
+                  SizedBox(height: size.height * 0.05), // Espaciado relativo
                   // Contenedor del formulario
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: size.width * 0.05,
-                      ),
-                      child: Material(
-                        elevation: 5.0,
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: EdgeInsets.all(
-                            size.width * 0.05,
-                          ), // Padding relativo
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Form(
-                            key: _formkey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CustomTextField(
-                                  title: "Name",
-                                  icon: Icons.account_circle_outlined,
-                                  controller: nameCtrl,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please Enter Name';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                SizedBox(height: size.height * 0.02),
-                                CustomTextField(
-                                  title: "Email",
-                                  icon: Icons.mail_outline,
-                                  controller: mailCtrl,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please Enter Email';
-                                    } else if (!value.contains("@")) {
-                                      return "Enter a valid E-mail";
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                SizedBox(
-                                  height: size.height * 0.02,
-                                ), // Espaciado relativo
-                                CustomTextField(
-                                  title: "Password",
-                                  icon: Icons.password,
-                                  obscureText: true,
-                                  controller: passwordCtrl,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please Enter Password';
-                                    } else if (value.length < 6) {
-                                      return "The password must have at least 6 characters";
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                SizedBox(
-                                  height: size.height * 0.02,
-                                ), // Espaciado relativo
-                                CustomTextField(
-                                  title: "Confirm Password",
-                                  icon: Icons.password,
-                                  obscureText: true,
-                                  controller: cnfrmPasswordCtrl,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please Confirm Password';
-                                    } else if (value != passwordCtrl.text) {
-                                      return "The passwords don't match";
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                SizedBox(height: 40.0),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      "Already have an account?",
-                                      style: TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 16.0,
-                                      ),
+                  SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: size.width * 0.05,
+                    ),
+                    child: Material(
+                      elevation: 5.0,
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: EdgeInsets.all(
+                          size.width * 0.06,
+                        ), // Padding relativo
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Form(
+                          key: _formkey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CustomTextField(
+                                title: "Name",
+                                icon: Icons.account_circle_outlined,
+                                controller: nameCtrl,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please Enter Name';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              SizedBox(height: size.height * 0.03),
+                              CustomTextField(
+                                title: "Email",
+                                icon: Icons.mail_outline,
+                                controller: mailCtrl,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please Enter Email';
+                                  } else if (!value.contains("@")) {
+                                    return "Enter a valid E-mail";
+                                  }
+                                  return null;
+                                },
+                              ),
+                              SizedBox(
+                                height: size.height * 0.03,
+                              ), // Espaciado relativo
+                              CustomTextField(
+                                title: "Password",
+                                icon: Icons.password,
+                                obscureText: true,
+                                controller: passwordCtrl,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please Enter Password';
+                                  } else if (value.length < 6) {
+                                    return "The password must have at least 6 characters";
+                                  }
+                                  return null;
+                                },
+                              ),
+                              SizedBox(
+                                height: size.height * 0.03,
+                              ), // Espaciado relativo
+                              CustomTextField(
+                                title: "Confirm Password",
+                                icon: Icons.password,
+                                obscureText: true,
+                                controller: cnfrmPasswordCtrl,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please Confirm Password';
+                                  } else if (value != passwordCtrl.text) {
+                                    return "The passwords don't match";
+                                  }
+                                  return null;
+                                },
+                              ),
+                              SizedBox(height: 40.0),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    "Already have an account?",
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 16.0,
                                     ),
-                                    Text(
-                                      " Sign In Now!",
-                                      style: TextStyle(
-                                        color: Color(0xFF7f30fe),
-                                        fontSize: 16.0,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                  ),
+                                  Text(
+                                    " Sign In Now!",
+                                    style: TextStyle(
+                                      color: Color(0xFF7f30fe),
+                                      fontSize: 16.0,
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ),
