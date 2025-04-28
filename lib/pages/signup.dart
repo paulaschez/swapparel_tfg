@@ -1,3 +1,4 @@
+import 'package:chat_app/pages/signin.dart';
 import 'package:chat_app/service/database.dart';
 import 'package:chat_app/service/shared_preferences.dart';
 import 'package:flutter/material.dart';
@@ -223,12 +224,17 @@ class _SignUpState extends State<SignUp> {
                                       fontSize: 16.0,
                                     ),
                                   ),
-                                  Text(
-                                    " Sign In Now!",
-                                    style: TextStyle(
-                                      color: Color(0xFF7f30fe),
-                                      fontSize: 16.0,
-                                      fontWeight: FontWeight.w500,
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=> SignIn()));
+                                    },
+                                    child: Text(
+                                      " Sign In Now!",
+                                      style: TextStyle(
+                                        color: Color(0xFF7f30fe),
+                                        fontSize: 16.0,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
                                 ],

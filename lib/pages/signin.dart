@@ -1,4 +1,8 @@
+import 'package:chat_app/components/custom_header.dart';
 import 'package:chat_app/components/custom_textfield.dart';
+import 'package:chat_app/components/form_container.dart';
+import 'package:chat_app/pages/forgot_password.dart';
+import 'package:chat_app/pages/signup.dart';
 import 'package:chat_app/service/database.dart';
 import 'package:chat_app/service/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -29,13 +33,15 @@ class _SignInState extends State<SignIn> {
     if (!mounted) return; // Verifica si el widget todavía está montado
 
     try {
-      print("DEBUG: Intentando iniciar sesión con Firebase Auth para el email: $mail");
-      // Intenta iniciar sesión con el email y contraseña proporcionados
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: mail,
-        password: password,
+      print(
+        "DEBUG: Intentando iniciar sesión con Firebase Auth para el email: $mail",
       );
-      print("DEBUG: ¡Inicio de sesión con Firebase Auth exitoso! UID: ${userCredential.user?.uid}");
+      // Intenta iniciar sesión con el email y contraseña proporcionados
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: mail, password: password);
+      print(
+        "DEBUG: ¡Inicio de sesión con Firebase Auth exitoso! UID: ${userCredential.user?.uid}",
+      );
 
       print("DEBUG: Buscando usuario en Firestore con email: $mail");
       // Busca la información del usuario en Firestore usando el email
@@ -43,7 +49,9 @@ class _SignInState extends State<SignIn> {
         mail,
       );
 
-      print("DEBUG: Firestore encontró ${querySnapshot.docs.length} documentos para ese email.");
+      print(
+        "DEBUG: Firestore encontró ${querySnapshot.docs.length} documentos para ese email.",
+      );
       // Verifica si se encontró algún documento
       if (querySnapshot.docs.isNotEmpty) {
         // Extrae los datos del primer documento encontrado
@@ -51,22 +59,30 @@ class _SignInState extends State<SignIn> {
         username = "${querySnapshot.docs[0]["username"]}";
         pic = "${querySnapshot.docs[0]["Photo"]}";
         id = querySnapshot.docs[0].id;
-        print("DEBUG: Datos extraídos - Name: $name, Username: $username, Pic: $pic, ID: $id");
+        print(
+          "DEBUG: Datos extraídos - Name: $name, Username: $username, Pic: $pic, ID: $id",
+        );
 
         print("DEBUG: Guardando datos en SharedPreferences...");
         // Guarda la información del usuario en SharedPreferences
         await SharedPreferenceHelper().saverUserDisplayName(name);
-        await SharedPreferenceHelper().saveUserEmail(mail); // Guarda el email usado para login
+        await SharedPreferenceHelper().saveUserEmail(
+          mail,
+        ); // Guarda el email usado para login
         await SharedPreferenceHelper().saveUserId(id);
         await SharedPreferenceHelper().saverUserPic(pic);
         await SharedPreferenceHelper().saveUserName(username);
         print("DEBUG: Datos guardados en SharedPreferences.");
 
         // Muestra un mensaje de éxito
-        if (mounted) { // Verifica de nuevo antes de usar context
+        if (mounted) {
+          // Verifica de nuevo antes de usar context
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Login Succesfully", style: TextStyle(fontSize: 20.0)),
+              content: Text(
+                "Login Succesfully",
+                style: TextStyle(fontSize: 20.0),
+              ),
             ),
           );
           print("DEBUG: Navegando a la pantalla Home...");
@@ -78,23 +94,26 @@ class _SignInState extends State<SignIn> {
         }
       } else {
         // Si no se encontraron documentos en Firestore para ese email
-        print("DEBUG: ERROR - No se encontraron datos en Firestore para el email: $mail después de un login exitoso.");
-         if (mounted) {
+        print(
+          "DEBUG: ERROR - No se encontraron datos en Firestore para el email: $mail después de un login exitoso.",
+        );
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
                 "Login successful, but couldn't fetch user data.",
                 style: TextStyle(fontSize: 18.0, color: Colors.black),
               ),
-               backgroundColor: Colors.orangeAccent,
+              backgroundColor: Colors.orangeAccent,
             ),
           );
         }
       }
-
     } on FirebaseAuthException catch (e) {
       // Captura errores específicos de FirebaseAuth
-      print("DEBUG: FirebaseAuthException capturada - Código: ${e.code}, Mensaje: ${e.message}");
+      print(
+        "DEBUG: FirebaseAuthException capturada - Código: ${e.code}, Mensaje: ${e.message}",
+      );
       String errorMessage = "An error occurred.";
       if (e.code == 'user-not-found') {
         errorMessage = "No User Found for that Email";
@@ -102,11 +121,13 @@ class _SignInState extends State<SignIn> {
         errorMessage = "Wrong Password Provided by User";
       } else if (e.code == 'invalid-email') {
         errorMessage = "The email address is badly formatted.";
-      } else if (e.code == 'invalid-credential'){
-         errorMessage = "Invalid credentials. Please check email and password."; // Más genérico para credenciales inválidas
+      } else if (e.code == 'invalid-credential') {
+        errorMessage =
+            "Invalid credentials. Please check email and password."; // Más genérico para credenciales inválidas
       }
 
-      if (mounted) { // Verifica antes de usar context
+      if (mounted) {
+        // Verifica antes de usar context
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -120,8 +141,9 @@ class _SignInState extends State<SignIn> {
     } catch (e) {
       // Captura cualquier otro error inesperado
       print("DEBUG: Error general capturado en userLogin: $e");
-      if (mounted) { // Verifica antes de usar context
-         ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+        // Verifica antes de usar context
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               "An unexpected error occurred: $e",
@@ -146,20 +168,7 @@ class _SignInState extends State<SignIn> {
           child: Stack(
             children: [
               // --- Fondo Decorativo Superior ---
-              Container(
-                height: size.height * 0.25,
-                width: size.width,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF7f30fe), Color(0xFF6380ff)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.vertical(
-                    bottom: Radius.elliptical(size.width, size.height * 0.1),
-                  ),
-                ),
-              ),
+              GradientHeader(),
               // --- Contenido Principal ---
               Padding(
                 padding: EdgeInsets.only(
@@ -168,137 +177,129 @@ class _SignInState extends State<SignIn> {
                 child: Column(
                   children: [
                     // --- Títulos ---
-                    Center(
-                      child: Text(
-                        "SignIn",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: size.width * 0.07, // Tamaño de fuente relativo
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Center(
-                      child: Text(
-                        "Login to your account",
-                        style: TextStyle(
-                          color: Color(0xFFbbb0ff),
-                          fontSize: size.width * 0.05, // Tamaño de fuente relativo
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                    TitleAndSubtitle(
+                      title: "SignIn",
+                      subtitle: "Log in to your account",
                     ),
                     SizedBox(height: size.height * 0.05), // Espaciado relativo
-
                     // --- Formulario ---
                     Form(
                       key: _formKey,
                       child: Container(
-                        margin: EdgeInsets.symmetric(
-                          horizontal: size.width * 0.05, // Margen horizontal relativo
+                        padding: EdgeInsets.symmetric(
+                          horizontal: size.width * 0.05,
                         ),
                         child: Material(
                           elevation: 5.0,
                           borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: size.width * 0.06, // Padding horizontal relativo
-                              vertical: size.height * 0.03, // Padding vertical relativo (ajustado)
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // --- Campo Email ---
-                                CustomTextField(
-                                  title: "Email",
-                                  icon: Icons.mail_outline,
-                                  controller: userMailCtrl,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please Enter Email';
-                                    } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) { // Validación de email más robusta
-                                      return "Enter a valid E-mail";
-                                    }
-                                    return null;
+                          child: FormContainer(
+                            children: [
+                              // --- Campo Email ---
+                              CustomTextField(
+                                title: "Email",
+                                icon: Icons.mail_outline,
+                                controller: userMailCtrl,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please Enter Email';
+                                  } else if (!RegExp(
+                                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                  ).hasMatch(value)) {
+                                    // Validación de email más robusta
+                                    return "Enter a valid E-mail";
+                                  }
+                                  return null;
+                                },
+                              ),
+                              SizedBox(
+                                height: size.height * 0.03,
+                              ), // Espaciado relativo
+                              // --- Campo Contraseña ---
+                              CustomTextField(
+                                title: "Password",
+                                icon: Icons.password,
+                                controller: userPasswordCtrl,
+                                obscureText: true,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Please Enter Password';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              SizedBox(
+                                height: size.height * 0.01,
+                              ), // Espaciado relativo
+                              // --- Enlace Olvidó Contraseña ---
+                              Container(
+                                alignment: Alignment.bottomRight,
+                                // Añadir GestureDetector si quieres que sea clickeable
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=> ForgotPassword()));
                                   },
-                                ),
-                                SizedBox(height: size.height * 0.03), // Espaciado relativo
-
-                                // --- Campo Contraseña ---
-                                CustomTextField(
-                                  title: "Password",
-                                  icon: Icons.password,
-                                  controller: userPasswordCtrl,
-                                  obscureText: true,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Please Enter Password';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                                SizedBox(height: size.height * 0.01), // Espaciado relativo
-
-                                // --- Enlace Olvidó Contraseña ---
-                                Container(
-                                  alignment: Alignment.bottomRight,
-                                  // Añadir GestureDetector si quieres que sea clickeable
                                   child: Text(
                                     "Forgot Password?",
                                     style: TextStyle(
                                       color: Colors.black54, // Color más suave
-                                      fontSize: size.width * 0.04, // Tamaño relativo
+                                      fontSize:
+                                          size.width * 0.04, // Tamaño relativo
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ),
-                                SizedBox(height: size.height * 0.05), // Espaciado relativo (ajustado)
-
-                                // --- Botón SignIn ---
-                                GestureDetector(
-                                  onTap: () {
-                                    print("DEBUG: Botón SignIn presionado.");
-                                    // Valida el formulario
-                                    if (_formKey.currentState!.validate()) {
-                                      print("DEBUG: Formulario validado.");
-                                      // Actualiza las variables 'mail' y 'password' con el texto de los controladores
-                                      setState(() {
-                                        mail = userMailCtrl.text.trim(); // trim() para quitar espacios extra
-                                        password = userPasswordCtrl.text.trim();
-                                        print("DEBUG: Email actualizado a: $mail"); // Verifica el valor
-                                      });
-                                      // Llama a la función de login
-                                      userLogin();
-                                    } else {
-                                       print("DEBUG: Formulario NO validado.");
-                                    }
-                                  },
-                                  child: Center(
-                                    child: Container(
-                                      width: size.width * 0.33, // Ancho relativo
-                                      child: Material(
-                                        elevation: 5.0,
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: Container(
-                                          padding: EdgeInsets.all(
-                                            size.width * 0.03, // Padding relativo
+                              ),
+                              SizedBox(
+                                height: size.height * 0.05,
+                              ), // Espaciado relativo (ajustado)
+                              // --- Botón SignIn ---
+                              GestureDetector(
+                                onTap: () {
+                                  print("DEBUG: Botón SignIn presionado.");
+                                  // Valida el formulario
+                                  if (_formKey.currentState!.validate()) {
+                                    print("DEBUG: Formulario validado.");
+                                    // Actualiza las variables 'mail' y 'password' con el texto de los controladores
+                                    setState(() {
+                                      mail =
+                                          userMailCtrl.text
+                                              .trim(); // trim() para quitar espacios extra
+                                      password = userPasswordCtrl.text.trim();
+                                      print(
+                                        "DEBUG: Email actualizado a: $mail",
+                                      ); // Verifica el valor
+                                    });
+                                    // Llama a la función de login
+                                    userLogin();
+                                  } else {
+                                    print("DEBUG: Formulario NO validado.");
+                                  }
+                                },
+                                child: Center(
+                                  child: Container(
+                                    width: size.width * 0.33, // Ancho relativo
+                                    child: Material(
+                                      elevation: 5.0,
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Container(
+                                        padding: EdgeInsets.all(
+                                          size.width * 0.03, // Padding relativo
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFF6380fb),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
                                           ),
-                                          decoration: BoxDecoration(
-                                            color: Color(0xFF6380fb),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              "SignIn",
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: size.width * 0.05, // Tamaño relativo
-                                                fontWeight: FontWeight.bold,
-                                              ),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            "SignIn",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize:
+                                                  size.width *
+                                                  0.05, // Tamaño relativo
+                                              fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                         ),
@@ -306,15 +307,19 @@ class _SignInState extends State<SignIn> {
                                     ),
                                   ),
                                 ),
-                                SizedBox(height: size.height * 0.02), // Espacio antes del texto SignUp
-                              ],
-                            ),
+                              ),
+                              SizedBox(
+                                height: size.height * 0.02,
+                              ), // Espacio antes del texto SignUp
+                            ],
                           ),
                         ),
                       ),
                     ),
-                    SizedBox(height: size.height * 0.04), // Espaciado relativo (ajustado)
 
+                    SizedBox(
+                      height: size.height * 0.04,
+                    ), // Espaciado relativo (ajustado)
                     // --- Texto y Enlace a SignUp ---
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -327,12 +332,17 @@ class _SignInState extends State<SignIn> {
                           ),
                         ),
                         // Añadir GestureDetector si quieres que sea clickeable para ir a SignUp
-                        Text(
-                          " Sign Up Now!",
-                          style: TextStyle(
-                            color: Color(0xFF7f30fe),
-                            fontSize: size.width * 0.04, // Tamaño relativo
-                            fontWeight: FontWeight.bold, // Más destacado
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=> SignUp()));
+                          },
+                          child: Text(
+                            " Sign Up Now!",
+                            style: TextStyle(
+                              color: Color(0xFF7f30fe),
+                              fontSize: size.width * 0.04, // Tamaño relativo
+                              fontWeight: FontWeight.bold, // Más destacado
+                            ),
                           ),
                         ),
                       ],
