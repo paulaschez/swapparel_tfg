@@ -10,9 +10,8 @@ class FormContainer extends StatelessWidget {
     final size = MediaQuery.of(context).size;
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: size.width * 0.02),
       padding: EdgeInsets.symmetric(
-        horizontal: size.width * 0.06,
+        horizontal: size.width * 0.07,
         vertical: size.height * 0.05,
       ),
       decoration: BoxDecoration(

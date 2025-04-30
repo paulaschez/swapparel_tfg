@@ -8,6 +8,8 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  bool _isSearching = false;
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -27,26 +29,48 @@ class _HomeState extends State<Home> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      "ChatUp",
-                      style: TextStyle(
-                        color: Color(0Xffc199cd),
-                        fontSize: size.width * 0.06, // Tamaño relativo al ancho
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Container(
-                      padding: EdgeInsets.all(
-                        size.width * 0.02,
-                      ), // Padding relativo
-                      decoration: BoxDecoration(
-                        color: Color(0xFF3a2144),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Icon(
-                        Icons.search,
-                        color: Color(0Xffc199cd),
-                        size: size.width * 0.06,
+                    _isSearching
+                        ? Expanded(
+                          child: TextField(
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              hintText: 'Search User',
+                              hintStyle: TextStyle(
+                                color: Colors.black,
+                                fontSize: 20.0,
+                                fontWeight: FontWeight.w500,
+                              )
+                              ,
+                            ),
+                            style: TextStyle(color: Colors.black, fontSize: 18.0, fontWeight: FontWeight.w500),
+                          ),
+                        )
+                        : Text(
+                          "ChatUp",
+                          style: TextStyle(
+                            color: Color(0Xffc199cd),
+                            fontSize:
+                                size.width * 0.06, // Tamaño relativo al ancho
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                    GestureDetector(
+                      onTap: () {
+                        _isSearching = true;
+
+                        setState(() {});
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(size.width * 0.02),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF3a2144),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Icon(
+                          Icons.search,
+                          color: Color(0Xffc199cd),
+                          size: size.width * 0.06,
+                        ),
                       ),
                     ),
                   ],
