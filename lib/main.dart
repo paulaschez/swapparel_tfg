@@ -1,11 +1,12 @@
+import 'package:chat_app/app/presentation/main_app_screen.dart';
 import 'package:chat_app/features/auth/presentation/provider/auth_provider.dart';
 import 'package:chat_app/features/auth/presentation/screens/login_screen.dart';
-import 'package:chat_app/features/chat/presentation/screens/conversations_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'app/config/theme/app_theme.dart';
 
 import 'core/services/local_storage_service.dart';
 import 'features/auth/data/repositories/auth_repository.dart';
@@ -54,12 +55,10 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Flutter Demo',
+        title: 'EcoSwap',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        ),
-        home: AuthWrapper(),
+        theme: AppTheme.lightTheme,
+        home: MainAppScreen(),
       ),
     );
   }
@@ -82,7 +81,7 @@ class AuthWrapper extends StatelessWidget {
         }
         if (snapshot.hasData) {
           // Usuario está logueado
-          return Home(); 
+          return MainAppScreen(); 
         } else {
           // Usuario no está logueado
           return SignIn(); 

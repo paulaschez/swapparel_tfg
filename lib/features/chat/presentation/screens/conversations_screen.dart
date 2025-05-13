@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-class Home extends StatefulWidget {
-  const Home({super.key});
+class ChatListScreen extends StatefulWidget {
+  const ChatListScreen({super.key});
 
   @override
-  State<Home> createState() => _HomeState();
+  State<ChatListScreen> createState() => _ChatListScreenState();
 }
 
-class _HomeState extends State<Home> {
+class _ChatListScreenState extends State<ChatListScreen> {
   bool _isSearching = false;
 
   @override
@@ -93,7 +93,7 @@ class _HomeState extends State<Home> {
                     children: [
                       ChatEntry(
                         size: size,
-                        image: "images/boy.jpg",
+                        image: "assets/boy.jpg",
                         name: "Shivam Gupta",
                         mssg: "Hello, What are you doing?",
                         hour: "04:30 PM",
@@ -105,7 +105,7 @@ class _HomeState extends State<Home> {
                       ),
                       ChatEntry(
                         size: size,
-                        image: "images/woman.png",
+                        image: "assets/woman.png",
                         name: "Sara Martínez",
                         mssg: "Me está dando un error enorme",
                         hour: "04:30 PM",
