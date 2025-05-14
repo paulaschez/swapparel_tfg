@@ -19,6 +19,8 @@ abstract class AuthRepository {
   Stream<User?>
   get authStateChanges; // Para saber si el usuario está logueado ya
   Future<UserModel?> getCurrentUserModel();
+  User? get currentUser;              // Para obtener el usuario actual de forma síncrona
+  String? get currentUserId;          // Para obtener el UID actual de forma síncrona
 }
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -188,4 +190,10 @@ class AuthRepositoryImpl implements AuthRepository {
        throw Exception("Failed to send password reset email.");
     }
   }
+  
+  @override
+  User? get currentUser => _firebaseAuth.currentUser;
+  
+  @override
+  String? get currentUserId => _firebaseAuth.currentUser?.uid;
 }

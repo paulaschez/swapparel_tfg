@@ -6,7 +6,15 @@ class AuthProviderC extends ChangeNotifier {
   final AuthRepository _authRepository;
 
   AuthProviderC({required AuthRepository authRepository})
-    : _authRepository = authRepository;
+    : _authRepository = authRepository {
+    _authRepository.authStateChanges.listen((User? user) {
+      notifyListeners();
+    });
+  }
+
+  User? get currentUser => _authRepository.currentUser;
+  String? get currentUserId => _authRepository.currentUserId;
+  bool get isAuthenticated => _authRepository.currentUser != null;
 
   // Estados internos
   bool _isLoading = false;
