@@ -1,3 +1,6 @@
+// ignore_for_file: avoid_print
+
+import 'package:chat_app/features/profile/presentation/widgets/profile_garment_card.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_app/app/config/theme/app_theme.dart';
 import 'package:chat_app/core/utils/responsive_utils.dart'; 
@@ -194,7 +197,7 @@ class ProfileScreen extends StatelessWidget {
                       Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: AppColors.lightGreen.withOpacity(0.4),
+                          color: AppColors.lightGreen.withValues(alpha:0.4),
                           borderRadius: BorderRadius.circular(12.0),
                         ),
                         padding: EdgeInsets.all(gridPadding),
@@ -321,69 +324,7 @@ class ProfileScreen extends StatelessWidget {
       itemCount: garments.length,
       itemBuilder: (context, index) {
         final garment = garments[index];
-        return Container(
-          padding: EdgeInsets.all(8),
-          width: polaroidWidth, // Ancho fijo
-          height: polaroidHeight, // Alto fijo
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 4,
-                offset: const Offset(1, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              AspectRatio(
-                aspectRatio: 1 / 1, // Imagen cuadrada
-                child: Container(
-                  color: Colors.white, // Placeholder
-                  child: const Center(
-                    child: Icon(
-                      Icons.image_not_supported,
-                      color: Colors.grey,
-                      size: 30,
-                    ),
-                  ),
-                  // TODO: Usar Image.network(garment.imageUrl, fit: BoxFit.cover)
-                ),
-              ),
-
-              // Nombre de la prenda
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center, // Centra verticalmente
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Text(
-                        garment['name'],
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.darkGreen,
-                          fontSize: ResponsiveUtils.fontSize(
-                            context,
-                            baseSize: 10,
-                            tabletMultiplier: 1.05,
-                            desktopMultiplier: 1.1,
-                            maxSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
+        return ProfileGarmentCard(polaroidWidth: polaroidWidth, polaroidHeight: polaroidHeight, garment: garment);
       },
     );
     }
@@ -425,3 +366,4 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 }
+

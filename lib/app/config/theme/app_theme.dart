@@ -132,7 +132,7 @@ class AppTheme {
       // Card Theme
       cardTheme: CardTheme(
         elevation: 1.0, // Sombra sutil
-        color: AppColors.surface, // Fondo blanco
+        color: AppColors.primaryGreen, // Fondo blanco
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12.0),
            side: BorderSide(color: Colors.grey.shade200, width: 0.5), // Borde muy sutil opcional

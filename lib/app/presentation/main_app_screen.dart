@@ -1,5 +1,6 @@
 import 'package:chat_app/app/config/theme/app_theme.dart';
 import 'package:chat_app/features/chat/presentation/screens/conversations_screen.dart';
+import 'package:chat_app/features/feed/presentation/screens/feed_screen.dart';
 import 'package:flutter/material.dart';
 //import '../../features/chat/presentation/screens/conversations_screen.dart';
 //import '../../features/feed/presentation/screens/feed_screen.dart'; 
@@ -16,7 +17,7 @@ class MainAppScreen extends StatefulWidget {
 }
 
 class _MainAppScreenState extends State<MainAppScreen> {
-  int _selectedIndex = 2; // Estado para el índice seleccionado (0: Feed por defecto)
+  int _selectedIndex = 0; // Estado para el índice seleccionado (0: Feed por defecto)
 
   Widget _buildProfileScreen() {
     // TODO: Obtener el userId real (ej: desde Provider)
@@ -30,7 +31,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
   void initState() {
     super.initState();
     _widgetOptions = <Widget>[
-      const Center(child: Text("Feed PENDIENTE")), // Placeholder para FeedScreen
+      const FeedScreen(), // Placeholder para FeedScreen
       const ChatListScreen(),
       _buildProfileScreen(), // Llama al método para construir ProfileScreen
     ];
