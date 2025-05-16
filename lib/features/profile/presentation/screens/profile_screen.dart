@@ -1,9 +1,11 @@
 // ignore_for_file: avoid_print
 
+import 'package:chat_app/features/auth/presentation/provider/auth_provider.dart';
 import 'package:chat_app/features/profile/presentation/widgets/profile_garment_card.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_app/app/config/theme/app_theme.dart';
-import 'package:chat_app/core/utils/responsive_utils.dart'; 
+import 'package:chat_app/core/utils/responsive_utils.dart';
+import 'package:provider/provider.dart'; 
 
 
 // TODO: Importar modelos y Provider
@@ -31,7 +33,7 @@ class ProfileScreen extends StatelessWidget {
     final double gridPadding = ResponsiveUtils.gridPadding(context);
 
     // --- Datos de ejemplo ---
-    const bool isLoading = false;
+    //const bool isLoading = false;
     const String? errorMessage = null;
     const String placeholderUsername = "@username_placeholder";
     const String placeholderName = "Nombre Completo Placeholder";
@@ -101,13 +103,13 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
       body:
-          isLoading
+          /* isLoading
               ? Center(
                 child: CircularProgressIndicator(
                   color: Theme.of(context).colorScheme.primary,
                 ),
               )
-              : errorMessage != null
+              :  */errorMessage != null
               ? Center(
                 child: Padding(
                   padding: EdgeInsets.all(horizontalPadding),
@@ -238,7 +240,14 @@ class ProfileScreen extends StatelessWidget {
       floatingActionButton:
           isCurrentUserProfile
               ? FloatingActionButton(
-                onPressed: () => _showAddGarmentOptions(context),
+                onPressed:() async {
+                  final authProvider = Provider.of<AuthProviderC>(
+                            context,
+                            listen: false,
+                          );
+                          await authProvider.signOut();
+                },
+                //onPressed: () => _showAddGarmentOptions(context),
                 child: const Icon(Icons.add),
               )
               : null,

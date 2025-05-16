@@ -1,6 +1,7 @@
 import 'package:chat_app/app/presentation/main_app_screen.dart';
 import 'package:chat_app/features/auth/presentation/provider/auth_provider.dart';
 import 'package:chat_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:chat_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:chat_app/features/feed/data/repositories/feed_repository.dart';
 import 'package:chat_app/features/feed/presentation/provider/feed_provider.dart';
 import 'package:chat_app/features/profile/data/repositories/profile_repository.dart';
@@ -103,18 +104,30 @@ class MyApp extends StatelessWidget {
         title: 'EcoSwap',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: MainAppScreen(),
+        home: AuthWrapper(),
       ),
     );
   }
 }
 
 // Widget para decidir si mostrar Login o Home basado en Auth
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
   @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    print('AuthWrapper: initState called');
+  }
+
+  @override
   Widget build(BuildContext context) {
+    print("AuthWrapper: Build method called");
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
@@ -123,12 +136,23 @@ class AuthWrapper extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           ); // Esperando conexión
         }
-        if (snapshot.hasData) {
+
+         if (snapshot.hasError) {
+        print("AuthWrapper StreamBuilder: Error in stream: ${snapshot.error}");
+        return const Scaffold(body: Center(child: Text("Error de autenticación")));
+      }
+        if (snapshot.hasData && snapshot.data != null) {
+          print(
+            "AuthWrapper StreamBuilder: User is logged in! UID: ${snapshot.data!.uid}. Navigating to MainAppScreen.",
+          );
           // Usuario está logueado
           return MainAppScreen();
         } else {
+          print(
+            "AuthWrapper StreamBuilder: No user / User is null. Navigating to SignIn.",
+          );
           // Usuario no está logueado
-          return SignIn();
+          return const SignIn();
         }
       },
     );

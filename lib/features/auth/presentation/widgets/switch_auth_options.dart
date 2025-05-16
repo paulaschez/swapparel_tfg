@@ -1,3 +1,5 @@
+
+import 'package:chat_app/core/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 
 class SwitchAuthOption extends StatelessWidget {
@@ -14,33 +16,31 @@ class SwitchAuthOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     return Center(
       child: Wrap(
-        spacing: size.width*0.01,
         alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
             txt1,
             style: TextStyle(
               color: Colors.black,
-              fontSize: size.width * 0.04,
+              fontSize: ResponsiveUtils.fontSize(context, baseSize: 16),
             ),
           ),
-          GestureDetector(
-            onTap: () {
-              Navigator.pushReplacement(
+
+          TextButton(
+            onPressed: () {
+              Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => route,
-                ),
+                MaterialPageRoute(builder: (context) => route),
               );
             },
             child: Text(
               txt2,
               style: TextStyle(
-                color: Color(0xFF7f30fe),
-                fontSize: size.width * 0.04,
+                color: Colors.black,
+                fontSize: ResponsiveUtils.fontSize(context, baseSize: 16),
                 fontWeight: FontWeight.bold,
               ),
             ),

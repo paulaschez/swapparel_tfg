@@ -8,6 +8,7 @@ class AuthProviderC extends ChangeNotifier {
   AuthProviderC({required AuthRepository authRepository})
     : _authRepository = authRepository {
     _authRepository.authStateChanges.listen((User? user) {
+      print("AuthProviderC: Auth state changed. User: ${user?.uid}");
       notifyListeners();
     });
   }
@@ -34,7 +35,7 @@ class AuthProviderC extends ChangeNotifier {
   }) async {
     _setLoading(true);
     bool success = false;
-
+   
     try {
       // Llama al metodo del repositorio
       final userCredential = await _authRepository.signUpWithEmailPassword(
@@ -43,6 +44,13 @@ class AuthProviderC extends ChangeNotifier {
         username: username,
       );
       success = userCredential != null;
+
+      if (success) {
+        print(
+          "AuthProviderC: SignUp success, currentUser: ${_authRepository.currentUser?.uid}",
+        );
+       
+      }
     } on FirebaseAuthException catch (e) {
       _setError(_mapFirebaseAuthExceptionMessage(e));
     } catch (e) {
@@ -50,6 +58,7 @@ class AuthProviderC extends ChangeNotifier {
     } finally {
       _setLoading(false);
     }
+
     return success;
   }
 

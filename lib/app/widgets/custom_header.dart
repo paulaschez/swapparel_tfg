@@ -1,3 +1,4 @@
+import 'package:chat_app/app/config/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class GradientHeader extends StatelessWidget {
@@ -14,7 +15,7 @@ class GradientHeader extends StatelessWidget {
       width: size.width,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF7f30fe), Color(0xFF6380ff)],
+          colors: [AppColors.primaryGreen,AppColors.textSecondary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

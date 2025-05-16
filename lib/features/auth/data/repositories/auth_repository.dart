@@ -19,8 +19,8 @@ abstract class AuthRepository {
   Stream<User?>
   get authStateChanges; // Para saber si el usuario está logueado ya
   Future<UserModel?> getCurrentUserModel();
-  User? get currentUser;              // Para obtener el usuario actual de forma síncrona
-  String? get currentUserId;          // Para obtener el UID actual de forma síncrona
+  User? get currentUser; // Para obtener el usuario actual de forma síncrona
+  String? get currentUserId; // Para obtener el UID actual de forma síncrona
 }
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -45,9 +45,14 @@ class AuthRepositoryImpl implements AuthRepository {
     required String username,
   }) async {
     try {
+      print("AuthRepo: Attempting Firebase user creation for $email");
       // Crear usuario en Auth
       UserCredential userCredential = await _firebaseAuth
           .createUserWithEmailAndPassword(email: email, password: password);
+
+      print(
+        "AuthRepo: Firebase user creation SUCCESSFUL. User UID: ${userCredential.user?.uid}",
+      );
 
       // Si el usuario se creó correctamente
       if (userCredential.user != null) {
@@ -64,8 +69,12 @@ class AuthRepositoryImpl implements AuthRepository {
           photoUrl: defaultPhotoUrl,
         );
 
+
         // Guardar en Firestore
         await _firestore.collection("users").doc(userId).set(newUser.toJson());
+
+                print("AuthRepo: User data saved to Firestore for UID: $userId");
+
 
         // Guardar en SharedPreferences
         await _localStorageService.saveUserId(userId);
@@ -74,8 +83,12 @@ class AuthRepositoryImpl implements AuthRepository {
         await _localStorageService.saveUserDisplayName(username);
         await _localStorageService.saveUserPic(defaultPhotoUrl);
 
+                print("AuthRepo: User data saved to cache for UID: $userId");
+
+
         return userCredential; // Devuelve el UserCredential si todo fue bien
       }
+      print("AuthRepo: userCredential.user was null after creation (should not happen).");
       return null;
     } on FirebaseAuthException catch (e) {
       print("AuthRepo SignUp Error: ${e.code}");
@@ -180,20 +193,20 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> sendPasswordResetEmail({required String email}) async {
-    try{
+    try {
       await _firebaseAuth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
-       print("AuthRepo ResetPassword Error: ${e.code}");
-       rethrow; // Para que la UI sepa el error ('user-not-found')
+      print("AuthRepo ResetPassword Error: ${e.code}");
+      rethrow; // Para que la UI sepa el error ('user-not-found')
     } catch (e) {
-       print("AuthRepo ResetPassword General Error: $e");
-       throw Exception("Failed to send password reset email.");
+      print("AuthRepo ResetPassword General Error: $e");
+      throw Exception("Failed to send password reset email.");
     }
   }
-  
+
   @override
   User? get currentUser => _firebaseAuth.currentUser;
-  
+
   @override
   String? get currentUserId => _firebaseAuth.currentUser?.uid;
 }

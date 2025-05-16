@@ -1,3 +1,5 @@
+import 'package:chat_app/app/config/theme/app_theme.dart';
+import 'package:chat_app/core/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 
 class FormContainer extends StatelessWidget {
@@ -9,18 +11,20 @@ class FormContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: size.width * 0.07,
-        vertical: size.height * 0.05,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: 500),
+      child: Material(
+        elevation: 5.0,
         borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
+        color: AppColors.lightGreen,
+        child: Padding(
+          padding: EdgeInsets.all(
+            ResponsiveUtils.largeVerticalSpacing(context) * 2,
+          ),
+          child: Column(
+            children: children,
+          ),
+        ),
       ),
     );
   }

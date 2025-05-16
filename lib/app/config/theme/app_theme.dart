@@ -90,13 +90,13 @@ class AppTheme {
       // ElevatedButton Theme (Para botones principales)
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryGreen, // Fondo verde
+          backgroundColor: AppColors.darkGreen, // Fondo verde
           foregroundColor: Colors.white, // Texto blanco
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.0), // Bordes redondeados
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          textStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
       ),
 
@@ -125,7 +125,16 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12.0),
           borderSide: BorderSide(color: AppColors.primaryGreen, width: 1.5), // Borde verde principal
         ),
-        hintStyle: GoogleFonts.poppins(color: AppColors.textSecondary), // Estilo del placeholder
+        errorBorder: OutlineInputBorder( // Borde cuando tiene el foco
+          borderRadius: BorderRadius.circular(12.0),
+          borderSide: BorderSide(color: AppColors.error, width: 1.5), // Borde verde principal
+        ),
+        focusedErrorBorder: OutlineInputBorder( // Borde cuando tiene el foco
+          borderRadius: BorderRadius.circular(12.0),
+          //borderSide: BorderSide(color: AppColors.error, width: 1.5), // Borde verde principal
+        ),
+        hintStyle: TextStyle(
+            fontSize: 13        ) , // Estilo del placeholder
         labelStyle: GoogleFonts.poppins(color: AppColors.darkGreen), // Estilo de la etiqueta flotante
       ),
 
@@ -158,6 +167,8 @@ class AppTheme {
         thickness: 1,
         space: 1, // Espacio que ocupa
       ),
+
+      
     );
   }
 }

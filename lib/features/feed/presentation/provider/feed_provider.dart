@@ -1,4 +1,4 @@
-import 'package:chat_app/features/auth/data/repositories/auth_repository.dart';
+//import 'package:chat_app/features/auth/data/repositories/auth_repository.dart';
 import 'package:chat_app/features/profile/data/repositories/profile_repository.dart';
 import 'package:flutter/foundation.dart'; // Para ChangeNotifier
 import 'package:cloud_firestore/cloud_firestore.dart';
