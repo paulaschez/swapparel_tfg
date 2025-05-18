@@ -1,12 +1,12 @@
+import 'package:chat_app/app/config/routes/app_routes.dart';
 import 'package:chat_app/app/config/theme/app_theme.dart';
 import 'package:chat_app/core/utils/responsive_utils.dart';
 import 'package:chat_app/features/auth/presentation/provider/auth_provider.dart';
 import 'package:chat_app/features/auth/presentation/widgets/custom_textfield.dart';
 import 'package:chat_app/features/auth/presentation/widgets/form_container.dart';
 import 'package:chat_app/features/auth/presentation/widgets/switch_auth_options.dart';
-import 'package:chat_app/features/auth/presentation/screens/forgot_password_screen.dart';
-import 'package:chat_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class SignIn extends StatefulWidget {
@@ -91,12 +91,7 @@ class _SignInState extends State<SignIn> {
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ForgotPassword(),
-                            ),
-                          );
+                          context.go(AppRoutes.forgotPassword);
                         },
                         child: Text(
                           "¿Olvidaste tu contraseña?",
@@ -186,7 +181,7 @@ class _SignInState extends State<SignIn> {
               SwitchAuthOption(
                 txt1: "¿No tienes cuenta?",
                 txt2: "Registrate aquí",
-                route: SignUp(),
+                routePath: AppRoutes.register,
               ),
             ],
           ),

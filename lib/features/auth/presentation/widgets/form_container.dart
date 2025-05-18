@@ -9,8 +9,6 @@ class FormContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: 500),
       child: Material(

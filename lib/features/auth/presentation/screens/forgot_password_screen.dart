@@ -1,9 +1,9 @@
+import 'package:chat_app/app/config/routes/app_routes.dart';
 import 'package:chat_app/app/config/theme/app_theme.dart';
 import 'package:chat_app/core/utils/responsive_utils.dart';
 import 'package:chat_app/features/auth/presentation/provider/auth_provider.dart';
 import 'package:chat_app/features/auth/presentation/widgets/form_container.dart';
 import 'package:chat_app/features/auth/presentation/widgets/switch_auth_options.dart';
-import 'package:chat_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_app/features/auth/presentation/widgets/custom_textfield.dart';
 import 'package:provider/provider.dart';
@@ -125,7 +125,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
               SwitchAuthOption(
                 txt1: "¿No tienes cuenta?",
                 txt2: "Registrate aquí",
-                route: SignUp(),
+                routePath: AppRoutes.register,
               ),
             ],
           ),

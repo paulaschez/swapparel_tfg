@@ -1,10 +1,7 @@
-import 'package:chat_app/app/config/theme/app_theme.dart';
-import 'package:chat_app/app/presentation/main_app_screen.dart';
-import 'package:chat_app/app/widgets/custom_button.dart';
+import 'package:chat_app/app/config/routes/app_routes.dart';
 import 'package:chat_app/core/utils/responsive_utils.dart';
 import 'package:chat_app/features/auth/presentation/widgets/form_container.dart';
 import 'package:chat_app/features/auth/presentation/widgets/switch_auth_options.dart';
-import 'package:chat_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_app/features/auth/presentation/widgets/custom_textfield.dart';
 import 'package:provider/provider.dart';
@@ -125,7 +122,7 @@ class _SignUpState extends State<SignUp> {
                       SwitchAuthOption(
                         txt1: "¿Ya tienes una cuenta?",
                         txt2: "Inicia sesión aquí",
-                        route: SignIn(),
+                        routePath: AppRoutes.login,
                       ),
                     ],
                   ),
@@ -153,8 +150,6 @@ class _SignUpState extends State<SignUp> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text("Registro exitoso")),
                             );
-
-                            Navigator.pop(context);
 
                           } else if (mounted && !success) {
                             // Muestra el error obtenido por el provider

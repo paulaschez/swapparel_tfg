@@ -1,18 +1,21 @@
 
 import 'package:chat_app/core/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class SwitchAuthOption extends StatelessWidget {
   const SwitchAuthOption({
     super.key,
     required this.txt1,
     required this.txt2,
-    required this.route,
+    required this.routePath,
+    this.replace = true,
   });
 
   final String txt1;
   final String txt2;
-  final Widget route;
+  final String routePath;
+  final bool replace;
 
   @override
   Widget build(BuildContext context) {
@@ -31,10 +34,7 @@ class SwitchAuthOption extends StatelessWidget {
 
           TextButton(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => route),
-              );
+              replace? context.go(routePath) : context.push(routePath);
             },
             child: Text(
               txt2,

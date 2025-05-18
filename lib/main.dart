@@ -1,7 +1,7 @@
-import 'package:chat_app/app/presentation/main_app_screen.dart';
+// ignore_for_file: avoid_print
+
+import 'package:chat_app/app/config/routes/app_router.dart';
 import 'package:chat_app/features/auth/presentation/provider/auth_provider.dart';
-import 'package:chat_app/features/auth/presentation/screens/login_screen.dart';
-import 'package:chat_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:chat_app/features/feed/data/repositories/feed_repository.dart';
 import 'package:chat_app/features/feed/presentation/provider/feed_provider.dart';
 import 'package:chat_app/features/profile/data/repositories/profile_repository.dart';
@@ -20,11 +20,11 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const MyApp());
+  runApp(const MyAppInitializer());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MyAppInitializer extends StatelessWidget {
+  const MyAppInitializer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -100,17 +100,44 @@ class MyApp extends StatelessWidget {
           },
         ),
       ],
-      child: MaterialApp(
-        title: 'EcoSwap',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: AuthWrapper(),
-      ),
+      child: const MyApp(),
     );
   }
 }
 
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final AppRouter _appRouter;
+
+  @override
+  void initState() {
+    super.initState();
+    // Obtiene la instancia de AuthProviderC despues de que MultiProvider la haya creado
+    final authProvider = Provider.of<AuthProviderC>(context, listen: false);
+    _appRouter = AppRouter(authProvider: authProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp.router(
+      title: 'EcoSwap',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      routerConfig: _appRouter.router,
+    );
+  }
+}
+
+/*
+
 // Widget para decidir si mostrar Login o Home basado en Auth
+
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
@@ -118,7 +145,7 @@ class AuthWrapper extends StatefulWidget {
   State<AuthWrapper> createState() => _AuthWrapperState();
 }
 
-class _AuthWrapperState extends State<AuthWrapper> {
+ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   void initState() {
     super.initState();
@@ -158,3 +185,4 @@ class _AuthWrapperState extends State<AuthWrapper> {
     );
   }
 }
+ */
