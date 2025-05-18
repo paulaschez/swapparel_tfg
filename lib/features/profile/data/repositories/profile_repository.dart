@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -6,18 +8,27 @@ import '../../../garment/data/models/garment_model.dart'; // Necesitarás Garmen
 import 'package:chat_app/app/config/constants/firestore_collections.dart';
 
 abstract class ProfileRepository {
-  // --- Obtención de Datos del Perfil ---
   Future<UserModel?> getUserProfile(String userId);
-  Future<List<GarmentModel>> getUserUploadedGarments(String userId, {DocumentSnapshot? lastVisible, int limit = 10});
+  Future<List<GarmentModel>> getUserUploadedGarments(
+    String userId, {
+    DocumentSnapshot? lastVisible,
+    int limit = 10,
+  });
+  Future<void> updateUserProfileData(
+    String userId,
+    Map<String, dynamic> dataToUpdate,
+  );
+  Future<String?> uploadProfilePicture(String userId, File imageFile);
 
-  // --- Edición de Datos del Perfil ---
-  Future<void> updateUserProfileData(String userId, Map<String, dynamic> dataToUpdate);
-  Future<String?> uploadProfilePicture(String userId, File imageFile); 
-  
-  
   // --- Interacciones (Likes/Dislikes del Usuario  ---
-  Future<void> addLikedItemToMyProfile({required String currentUserId, required String likedGarmentId});
-  Future<void> addDislikedItemToMyProfile({required String currentUserId, required String dislikedGarmentId}); // Ya lo hace FeedRepository, ¿centralizar?
+  Future<void> addLikedItemToMyProfile({
+    required String currentUserId,
+    required String likedGarmentId,
+  });
+  Future<void> addDislikedItemToMyProfile({
+    required String currentUserId,
+    required String dislikedGarmentId,
+  }); // Ya lo hace FeedRepository, ¿centralizar?
 
   // --- Obtención de Interacciones (Para cargar en FeedProvider) ---
   Future<Set<String>> getMyLikedItemIds(String currentUserId);
@@ -30,8 +41,7 @@ abstract class ProfileRepository {
 class ProfileRepositoryImpl implements ProfileRepository {
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
-  
-  
+
   ProfileRepositoryImpl({
     required FirebaseFirestore firestore,
     required FirebaseStorage storage,
@@ -41,7 +51,8 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<UserModel?> getUserProfile(String userId) async {
     try {
-      final docSnapshot = await _firestore.collection(usersCollection).doc(userId).get();
+      final docSnapshot =
+          await _firestore.collection(usersCollection).doc(userId).get();
       if (docSnapshot.exists) {
         return UserModel.fromFirestore(docSnapshot);
       }
@@ -53,7 +64,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<List<GarmentModel>> getUserUploadedGarments(String userId, {DocumentSnapshot? lastVisible, int limit = 10}) async {
+  Future<List<GarmentModel>> getUserUploadedGarments(
+    String userId, {
+    DocumentSnapshot? lastVisible,
+    int limit = 10,
+  }) async {
     try {
       Query query = _firestore
           .collection(garmentsCollection)
@@ -66,7 +81,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
       final querySnapshot = await query.limit(limit).get();
       return querySnapshot.docs
-          .map((doc) => GarmentModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+          .map(
+            (doc) => GarmentModel.fromFirestore(
+              doc as DocumentSnapshot<Map<String, dynamic>>,
+            ),
+          )
           .toList();
     } catch (e) {
       print("Error fetching user garments: $e");
@@ -75,39 +94,53 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<void> updateUserProfileData(String userId, Map<String, dynamic> dataToUpdate) async {
+  Future<void> updateUserProfileData(
+    String userId,
+    Map<String, dynamic> dataToUpdate,
+  ) async {
     try {
-      await _firestore.collection(usersCollection).doc(userId).update(dataToUpdate);
+      Map<String, dynamic> validData = Map.from(dataToUpdate)
+        ..removeWhere((key, value) => value == null);
+      if (validData.isEmpty) return;
+      await _firestore
+          .collection(usersCollection)
+          .doc(userId)
+          .update(validData);
     } catch (e) {
       print("Error updating user profile: $e");
       throw Exception("Failed to update profile.");
     }
   }
 
-  // --- Implementación de Interacciones ---
   @override
-  Future<void> addLikedItemToMyProfile({required String currentUserId, required String likedGarmentId}) async {
+  Future<void> addLikedItemToMyProfile({
+    required String currentUserId,
+    required String likedGarmentId,
+  }) async {
     try {
       await _firestore
           .collection(usersCollection)
           .doc(currentUserId)
           .collection(likedGarmentsCollection) // Nombre de la subcolección
           .doc(likedGarmentId)
-          .set({'timestamp': FieldValue.serverTimestamp()}); // Guardar timestamp o solo el doc vacío
+          .set({
+            'timestamp': FieldValue.serverTimestamp(),
+          }); 
     } catch (e) {
       print("Error adding liked item to profile: $e");
-      // Decide si lanzar excepción o solo loguear
     }
   }
 
   @override
-  Future<void> addDislikedItemToMyProfile({required String currentUserId, required String dislikedGarmentId}) async {
-   
+  Future<void> addDislikedItemToMyProfile({
+    required String currentUserId,
+    required String dislikedGarmentId,
+  }) async {
     try {
       await _firestore
           .collection(usersCollection)
           .doc(currentUserId)
-          .collection(dislikedGarmentsCollection) 
+          .collection(dislikedGarmentsCollection)
           .doc(dislikedGarmentId)
           .set({'timestamp': FieldValue.serverTimestamp()});
     } catch (e) {
@@ -115,15 +148,15 @@ class ProfileRepositoryImpl implements ProfileRepository {
     }
   }
 
-
   @override
   Future<Set<String>> getMyLikedItemIds(String currentUserId) async {
     try {
-      final snapshot = await _firestore
-          .collection(usersCollection)
-          .doc(currentUserId)
-          .collection(likedGarmentsCollection)
-          .get();
+      final snapshot =
+          await _firestore
+              .collection(usersCollection)
+              .doc(currentUserId)
+              .collection(likedGarmentsCollection)
+              .get();
       return snapshot.docs.map((doc) => doc.id).toSet();
     } catch (e) {
       print("Error fetching liked item IDs: $e");
@@ -134,12 +167,12 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<Set<String>> getMyDislikedItemIds(String currentUserId) async {
     try {
-     
-      final snapshot = await _firestore
-          .collection(usersCollection)
-          .doc(currentUserId)
-          .collection(dislikedGarmentsCollection) 
-          .get();
+      final snapshot =
+          await _firestore
+              .collection(usersCollection)
+              .doc(currentUserId)
+              .collection(dislikedGarmentsCollection)
+              .get();
       return snapshot.docs.map((doc) => doc.id).toSet();
     } catch (e) {
       print("Error fetching disliked item IDs: $e");
@@ -147,11 +180,12 @@ class ProfileRepositoryImpl implements ProfileRepository {
     }
   }
 
-   @override
-   Future<String?> uploadProfilePicture(String userId, File imageFile) async {
-    try{
+  @override
+  Future<String?> uploadProfilePicture(String userId, File imageFile) async {
+    try {
       // 1. Crear una referencia en Firebase Storage mediante el userId y un timestamp
-      final String fileName =  'profile_pictures/$userId/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final String fileName =
+          'profile_pictures/$userId/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final Reference storageRef = _storage.ref().child(fileName);
 
       // 2. Subir el archivo
@@ -164,9 +198,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
       final String downloadUrl = await snapshot.ref.getDownloadURL();
 
       // Actualizar photoUrl en el doc del usuario en Firestore
-      await updateUserProfileData(userId, {'photoUrl' : downloadUrl});
+      await updateUserProfileData(userId, {'photoUrl': downloadUrl});
       return downloadUrl;
-    } catch (e){
+    } catch (e) {
       print("Error uploading profile picture: $e");
       if (e is FirebaseException) {
         print("Firebase Storage Error Code: ${e.code}");

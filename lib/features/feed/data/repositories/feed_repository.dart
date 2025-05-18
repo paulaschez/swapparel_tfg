@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../garment/data/models/garment_model.dart';
 import 'package:chat_app/app/config/constants/firestore_collections.dart';

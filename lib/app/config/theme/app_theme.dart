@@ -163,7 +163,7 @@ class AppTheme {
 
       // Divider Theme
       dividerTheme: DividerThemeData(
-        color: Color(0xFF7d9b76), // Color de las líneas divisorias
+        color: Color(0xFFd5dfd2), // Color de las líneas divisorias
         thickness: 1,
         space: 1, // Espacio que ocupa
       ),

@@ -1,10 +1,11 @@
-// ignore_for_file: avoid_print
 
+import 'package:chat_app/app/config/routes/app_routes.dart';
 import 'package:chat_app/features/auth/presentation/provider/auth_provider.dart';
 import 'package:chat_app/features/profile/presentation/widgets/profile_garment_card.dart';
 import 'package:flutter/material.dart';
 import 'package:chat_app/app/config/theme/app_theme.dart';
 import 'package:chat_app/core/utils/responsive_utils.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart'; 
 
 
@@ -97,7 +98,9 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
               onPressed: () {
-                /* ... */
+               if(isCurrentUserProfile){
+                context.push(AppRoutes.editProfile);
+               }
               },
             ),
         ],
@@ -129,7 +132,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
+                    children: [
                       SizedBox(height: verticalSpacing),
                       CircleAvatar(
                         radius: avatarRadius,
@@ -356,7 +359,7 @@ class ProfileScreen extends StatelessWidget {
                 onTap: () {
                   // TODO: Implementar lógica para seleccionar de galería
                   print('Seleccionar de galería');
-                  Navigator.of(context).pop(); // Cierra el bottom sheet
+                  //Navigator.of(context).pop(); // Cierra el bottom sheet
                 },
               ),
               ListTile(
@@ -365,7 +368,7 @@ class ProfileScreen extends StatelessWidget {
                 onTap: () {
                   // TODO: Implementar lógica para tomar foto
                   print('Tomar foto');
-                  Navigator.of(context).pop(); // Cierra el bottom sheet
+                  //Navigator.of(context).pop(); // Cierra el bottom sheet
                 },
               ),
             ],
