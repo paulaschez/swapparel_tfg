@@ -5,6 +5,7 @@ import 'package:chat_app/features/auth/presentation/provider/auth_provider.dart'
 import 'package:chat_app/features/feed/data/repositories/feed_repository.dart';
 import 'package:chat_app/features/feed/presentation/provider/feed_provider.dart';
 import 'package:chat_app/features/profile/data/repositories/profile_repository.dart';
+import 'package:chat_app/features/profile/presentation/provider/profile_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -69,6 +70,12 @@ class MyAppInitializer extends StatelessWidget {
           create:
               (context) =>
                   AuthProviderC(authRepository: context.read<AuthRepository>()),
+        ),
+        ChangeNotifierProvider<ProfileProvider>(
+          create:
+              (context) => ProfileProvider(
+                profileRepository: context.read<ProfileRepository>(),
+              ),
         ),
         ChangeNotifierProxyProvider<AuthProviderC, FeedProvider>(
           create: (context) {

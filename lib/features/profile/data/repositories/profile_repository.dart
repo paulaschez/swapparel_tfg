@@ -34,7 +34,6 @@ abstract class ProfileRepository {
   Future<Set<String>> getMyLikedItemIds(String currentUserId);
   Future<Set<String>> getMyDislikedItemIds(String currentUserId);
 
-  // Podrías añadir métodos para obtener contadores de swaps/valoraciones si los guardas en el perfil
   // Future<int> getStats(String userId);
 }
 
@@ -99,13 +98,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
     Map<String, dynamic> dataToUpdate,
   ) async {
     try {
-      Map<String, dynamic> validData = Map.from(dataToUpdate)
-        ..removeWhere((key, value) => value == null);
-      if (validData.isEmpty) return;
+     
       await _firestore
           .collection(usersCollection)
           .doc(userId)
-          .update(validData);
+          .update(dataToUpdate);
     } catch (e) {
       print("Error updating user profile: $e");
       throw Exception("Failed to update profile.");

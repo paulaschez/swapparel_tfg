@@ -3,11 +3,7 @@ import 'package:chat_app/features/chat/presentation/screens/conversations_screen
 import 'package:chat_app/features/feed/presentation/screens/feed_screen.dart';
 import 'package:flutter/material.dart';
 //import '../../features/chat/presentation/screens/conversations_screen.dart';
-//import '../../features/feed/presentation/screens/feed_screen.dart'; 
 import '../../features/profile/presentation/screens/profile_screen.dart';
-// TODO: Importar AuthProvider o servicio para obtener el userId actual
-// import 'package:provider/provider.dart';
-// import '../../features/auth/presentation/provider/auth_provider.dart';
 
 class MainAppScreen extends StatefulWidget {
   const MainAppScreen({super.key});
@@ -20,9 +16,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
   int _selectedIndex = 0; // Estado para el índice seleccionado (0: Feed por defecto)
 
   Widget _buildProfileScreen() {
-    // TODO: Obtener el userId real (ej: desde Provider)
-    const String currentUserIdForProfile = "ID_USUARIO_LOGUEADO_AQUI"; // Placeholder
-    return ProfileScreen(userId: currentUserIdForProfile, isCurrentUserProfile: true);
+    return ProfileScreen( isCurrentUserProfile: true);
   }
 
   late final List<Widget> _widgetOptions;
@@ -31,7 +25,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
   void initState() {
     super.initState();
     _widgetOptions = <Widget>[
-      const FeedScreen(), // Placeholder para FeedScreen
+      const FeedScreen(), 
       const ChatListScreen(),
       _buildProfileScreen(), // Llama al método para construir ProfileScreen
     ];
