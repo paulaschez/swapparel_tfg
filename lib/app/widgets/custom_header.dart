@@ -1,4 +1,4 @@
-import 'package:chat_app/app/config/theme/app_theme.dart';
+import 'package:swapparel/app/config/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class GradientHeader extends StatelessWidget {

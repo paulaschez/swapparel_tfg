@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../../../auth/data/models/user_model.dart'; // Necesitarás UserModel
 import '../../../garment/data/models/garment_model.dart'; // Necesitarás GarmentModel
-import 'package:chat_app/app/config/constants/firestore_collections.dart';
+import 'package:swapparel/app/config/constants/firestore_collections.dart';
 
 abstract class ProfileRepository {
   Future<UserModel?> getUserProfile(String userId);
@@ -28,7 +28,7 @@ abstract class ProfileRepository {
   Future<void> addDislikedItemToMyProfile({
     required String currentUserId,
     required String dislikedGarmentId,
-  }); // Ya lo hace FeedRepository, ¿centralizar?
+  }); 
 
   // --- Obtención de Interacciones (Para cargar en FeedProvider) ---
   Future<Set<String>> getMyLikedItemIds(String currentUserId);

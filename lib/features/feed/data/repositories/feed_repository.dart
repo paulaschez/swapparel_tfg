@@ -2,7 +2,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../garment/data/models/garment_model.dart';
-import 'package:chat_app/app/config/constants/firestore_collections.dart';
+import 'package:swapparel/app/config/constants/firestore_collections.dart';
 
 
 abstract class FeedRepository {

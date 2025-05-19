@@ -1,14 +1,14 @@
-//import 'package:chat_app/features/auth/data/repositories/auth_repository.dart';
+//import 'package:swapparel/features/auth/data/repositories/auth_repository.dart';
 // ignore_for_file: avoid_print
 
-import 'package:chat_app/features/profile/data/repositories/profile_repository.dart';
+import 'package:swapparel/features/profile/data/repositories/profile_repository.dart';
 import 'package:flutter/foundation.dart'; // Para ChangeNotifier
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/repositories/feed_repository.dart';
 import '../../../garment/data/models/garment_model.dart';
-import 'package:chat_app/app/config/constants/firestore_collections.dart'; // <--- IMPORTA AQUÍ
+import 'package:swapparel/app/config/constants/firestore_collections.dart'; // <--- IMPORTA AQUÍ
 
-//import 'package:chat_app/features/auth/presentation/provider/auth_provider.dart';
+//import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
 
 // TODO: Importar un posible MatchRepository si el chequeo de match se hace aquí
 

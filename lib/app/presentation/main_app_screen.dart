@@ -1,6 +1,6 @@
-import 'package:chat_app/app/config/theme/app_theme.dart';
-import 'package:chat_app/features/chat/presentation/screens/conversations_screen.dart';
-import 'package:chat_app/features/feed/presentation/screens/feed_screen.dart';
+import 'package:swapparel/app/config/theme/app_theme.dart';
+import 'package:swapparel/features/chat/presentation/screens/conversations_screen.dart';
+import 'package:swapparel/features/feed/presentation/screens/feed_screen.dart';
 import 'package:flutter/material.dart';
 //import '../../features/chat/presentation/screens/conversations_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';

@@ -2,8 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swapparel/features/garment/presentation/screens/add_garment_screen.dart';
 
-import '../../../features/auth/presentation/provider/auth_provider.dart'; // Tu AuthProviderC
+import '../../../features/auth/presentation/provider/auth_provider.dart'; 
 import '../../../features/auth/presentation/screens/login_screen.dart';
 import '../../../features/auth/presentation/screens/register_screen.dart';
 import '../../../features/auth/presentation/screens/forgot_password_screen.dart';
@@ -77,8 +78,13 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.editProfile,
-        name: 'editprofile',
+        name: 'editProfile',
         builder: (context, state) => const EditProfileScreen(),
+      ),
+       GoRoute(
+        path: AppRoutes.addGarment,
+        name: 'addGarment',
+        builder: (context, state) => const AddGarmentScreen(),
       ),
     ],
     errorBuilder:

@@ -2,7 +2,7 @@
 
 import 'dart:async';
 
-import 'package:chat_app/core/utils/responsive_utils.dart';
+import 'package:swapparel/core/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 // import 'package:provider/provider.dart'; 
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';

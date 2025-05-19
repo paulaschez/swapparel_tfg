@@ -1,11 +1,11 @@
 // ignore_for_file: avoid_print
 
-import 'package:chat_app/app/config/routes/app_router.dart';
-import 'package:chat_app/features/auth/presentation/provider/auth_provider.dart';
-import 'package:chat_app/features/feed/data/repositories/feed_repository.dart';
-import 'package:chat_app/features/feed/presentation/provider/feed_provider.dart';
-import 'package:chat_app/features/profile/data/repositories/profile_repository.dart';
-import 'package:chat_app/features/profile/presentation/provider/profile_provider.dart';
+import 'package:swapparel/app/config/routes/app_router.dart';
+import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
+import 'package:swapparel/features/feed/data/repositories/feed_repository.dart';
+import 'package:swapparel/features/feed/presentation/provider/feed_provider.dart';
+import 'package:swapparel/features/profile/data/repositories/profile_repository.dart';
+import 'package:swapparel/features/profile/presentation/provider/profile_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';

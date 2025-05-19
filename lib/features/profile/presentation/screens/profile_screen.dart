@@ -1,13 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:chat_app/app/config/routes/app_routes.dart';
-import 'package:chat_app/features/auth/data/models/user_model.dart';
-import 'package:chat_app/features/auth/presentation/provider/auth_provider.dart';
-import 'package:chat_app/features/garment/data/models/garment_model.dart';
-import 'package:chat_app/features/profile/presentation/provider/profile_provider.dart';
-import 'package:chat_app/features/profile/presentation/widgets/profile_garment_card.dart';
+import 'package:swapparel/app/config/routes/app_routes.dart';
+import 'package:swapparel/features/auth/data/models/user_model.dart';
+import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
+import 'package:swapparel/features/garment/data/models/garment_model.dart';
+import 'package:swapparel/features/profile/presentation/provider/profile_provider.dart';
+import 'package:swapparel/features/profile/presentation/widgets/profile_garment_card.dart';
 import 'package:flutter/material.dart';
-import 'package:chat_app/app/config/theme/app_theme.dart';
-import 'package:chat_app/core/utils/responsive_utils.dart';
+import 'package:swapparel/app/config/theme/app_theme.dart';
+import 'package:swapparel/core/utils/responsive_utils.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -82,14 +82,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
-    super.dispose();
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         // Asegurarse que el widget aún está montado
         Provider.of<ProfileProvider>(context, listen: false).clearProfileData();
       }
     });
+    super.dispose();
   }
 
   @override
@@ -122,15 +121,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final String photoUrl = userProfile?.photoUrl ?? '';
 
     // TODO: Obtener swapCount y ratingCount del userProfile o calcularlos
+
     const int swapCount = 0;
     const int ratingCount = 0;
-    final List<GarmentModel> garmentsList = profileProvider.viewedUserGarments;
-
-    final List<dynamic> garments = List.generate(
-      5,
-      (index) => {'name': 'Prenda Ejemplo Larga ${index + 1}'},
-    );
-    // --- Fin Datos de ejemplo ---
+    final List<GarmentModel> garments = profileProvider.viewedUserGarments;
 
     return Scaffold(
       appBar: AppBar(
@@ -296,41 +290,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const Divider(),
                       SizedBox(height: largeVerticalSpacing),
-                      Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: AppColors.lightGreen.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(12.0),
-                        ),
-                        padding: EdgeInsets.all(gridPadding),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: EdgeInsets.only(
-                                bottom: verticalSpacing * 1.2,
-                              ),
-                              child: Text(
-                                widget.isCurrentUserProfile
-                                    ? "Mis Prendas"
-                                    : "Prendas Disponibles",
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.darkGreen,
-                                  fontSize: ResponsiveUtils.fontSize(
+                      ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: 220),
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: AppColors.lightGreen.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                          padding: EdgeInsets.all(gridPadding),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: verticalSpacing * 1.2,
+                                ),
+                                child: Text(
+                                  widget.isCurrentUserProfile
+                                      ? "Mis Prendas"
+                                      : "Prendas Disponibles",
+                                  style: Theme.of(
                                     context,
-                                    baseSize: 16,
-                                    tabletMultiplier: 1.1,
-                                    desktopMultiplier: 1.2,
-                                    maxSize: 20,
+                                  ).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.darkGreen,
+                                    fontSize: ResponsiveUtils.fontSize(
+                                      context,
+                                      baseSize: 16,
+                                      tabletMultiplier: 1.1,
+                                      desktopMultiplier: 1.2,
+                                      maxSize: 20,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            _buildGarmentGrid(garments),
-                          ],
+                              garments.isNotEmpty
+                                  ? _buildGarmentGrid(garments)
+                                  : ConstrainedBox(
+                                    constraints: BoxConstraints(maxHeight: 120),
+                                    child: Expanded(
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              "No hay prendas subidas aún. ",
+                                              style: TextStyle(
+                                                fontSize:
+                                                    ResponsiveUtils.fontSize(
+                                                      context,
+                                                      baseSize: 18,
+                                                    ),
+                                                color: AppColors.primaryGreen,
+                                              ),
+                                            ),
+
+                                            Text(
+                                              isMyProfile
+                                                  ? "¡Sube alguna!"
+                                                  : '',
+                                              style: TextStyle(
+                                                fontSize:
+                                                    ResponsiveUtils.fontSize(
+                                                      context,
+                                                      baseSize: 18,
+                                                    ),
+                                                color: AppColors.primaryGreen,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -340,7 +377,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       floatingActionButton:
           widget.isCurrentUserProfile
               ? FloatingActionButton(
-                onPressed: () => _showAddGarmentOptions(context),
+                onPressed: () => context.push(AppRoutes.addGarment),
                 child: const Icon(Icons.add),
               )
               : null,
@@ -405,11 +442,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Espaciado entre elementos
         final double gridItemSpacing = availableWidth * 0.025;
 
-        // Tamaño fijo del contenedor "polaroid"
         final double polaroidWidth =
-            availableWidth < 600
-                ? availableWidth * 0.4
-                : 180; // Máximo 180px en pantallas grandes
+            availableWidth < 600 ? availableWidth * 0.4 : 180;
         final double polaroidHeight =
             polaroidWidth * 1.3; // Relación de aspecto fija
 
@@ -438,36 +472,5 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // --- Función para mostrar opciones al añadir prenda ---
-  void _showAddGarmentOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext bc) {
-        return SafeArea(
-          child: Wrap(
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Subir de la galería'),
-                onTap: () {
-                  // TODO: Implementar lógica para seleccionar de galería
-                  print('Seleccionar de galería');
-                  //Navigator.of(context).pop(); // Cierra el bottom sheet
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_camera),
-                title: const Text('Tomar foto'),
-                onTap: () {
-                  // TODO: Implementar lógica para tomar foto
-                  print('Tomar foto');
-                  //Navigator.of(context).pop(); // Cierra el bottom sheet
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  
 }

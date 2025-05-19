@@ -1,5 +1,5 @@
 import 'dart:io'; // Para File
-import 'package:chat_app/app/config/constants/firestore_collections.dart';
+import 'package:swapparel/app/config/constants/firestore_collections.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Para DocumentSnapshot
 import '../../data/repositories/profile_repository.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:chat_app/features/chat/presentation/widgets/outgoing_message.dart';
-import 'package:chat_app/features/chat/presentation/widgets/incoming_message.dart';
+import 'package:swapparel/features/chat/presentation/widgets/outgoing_message.dart';
+import 'package:swapparel/features/chat/presentation/widgets/incoming_message.dart';
 
 class Chat extends StatefulWidget {
   const Chat({super.key, required this.name});

@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>chat_app</string>
+	<string>Swapparel</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Se necesita acceso a tu galería para que puedas seleccionar fotos de tus prendas.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Se necesita acceso a tu cámara para que puedas tomar fotos de tus prendas.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Se necesita acceso a tu micrófono si quieres grabar videos (aunque solo usemos fotos).</string>
 </dict>
 </plist>

@@ -1,6 +1,6 @@
 
-import 'package:chat_app/app/config/theme/app_theme.dart';
-import 'package:chat_app/core/utils/responsive_utils.dart';
+import 'package:swapparel/app/config/theme/app_theme.dart';
+import 'package:swapparel/core/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 
 class ProfileGarmentCard extends StatelessWidget {

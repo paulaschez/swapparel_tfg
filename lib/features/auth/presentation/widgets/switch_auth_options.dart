@@ -1,5 +1,5 @@
 
-import 'package:chat_app/core/utils/responsive_utils.dart';
+import 'package:swapparel/core/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 

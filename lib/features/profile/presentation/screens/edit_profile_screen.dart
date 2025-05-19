@@ -1,15 +1,15 @@
 // ignore_for_file: avoid_print
 
-import 'package:chat_app/app/config/theme/app_theme.dart';
-import 'package:chat_app/core/utils/responsive_utils.dart';
-import 'package:chat_app/features/auth/presentation/provider/auth_provider.dart';
+import 'package:swapparel/app/config/theme/app_theme.dart';
+import 'package:swapparel/core/utils/responsive_utils.dart';
+import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 // TODO: Importar AuthProviderC para el logout y ProfileProvider para cargar/guardar datos
 // import 'package:provider/provider.dart';
-// import 'package:chat_app/features/auth/presentation/provider/auth_provider.dart';
-// import 'package:chat_app/features/profile/presentation/provider/profile_provider.dart';
+// import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
+// import 'package:swapparel/features/profile/presentation/provider/profile_provider.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
