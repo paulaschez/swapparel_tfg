@@ -89,6 +89,7 @@ class GarmentRepositoryImpl implements GarmentRepository {
       await batch.commit();
       print(
         "GarmentRepo: Documento de prenda $garmentId eliminado de Firestore.",
+        //TODO: Cambiar reglas en Storage
       );
     } catch (e) {
       print("GarmentRepo Error - deleteGarment: $e");

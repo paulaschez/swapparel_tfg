@@ -3,14 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class UserModel {
   final String id; // Corresponde al document ID (Firebase Auth UID)
   final String email; // Correo electrónico del usuario
-  final String name; // Nombre de usuario
+  final String username; // Nombre de usuario
   final String? displayName; // Nombre que se mostrará
   final String? photoUrl; // URL de la foto de perfil
 
   UserModel({
     required this.id,
     required this.email,
-    required this.name,
+    required this.username,
     this.displayName,
     this.photoUrl,
   });
@@ -18,8 +18,8 @@ class UserModel {
   // Método para convertir un UserModel a un Map para Firestore
   Map<String, dynamic> toJson() {
     return {
-      'E-mail': email, 
-      'name': name,
+      'email': email, 
+      'username': username,
       'displayName': displayName,
       'photoUrl': photoUrl,
     };
@@ -35,8 +35,8 @@ class UserModel {
 
     return UserModel(
       id: doc.id, 
-      email: data['E-mail'], 
-      name: data['name'], 
+      email: data['email'], 
+      username: data['username'], 
       displayName: data['displayName'], 
       photoUrl: data['photoUrl'], 
     );
@@ -46,8 +46,8 @@ class UserModel {
     factory UserModel.fromJson(Map<String, dynamic> data, String id) {
      return UserModel(
        id: id,
-       email: data['E-mail'] ?? '',
-       name: data['name'],
+       email: data['email'] ?? '',
+       username: data['username'],
        displayName: data['displayName'],
        photoUrl: data['photoUrl'],
      );

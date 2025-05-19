@@ -66,7 +66,7 @@ class AuthRepositoryImpl implements AuthRepository {
         final newUser = UserModel(
           id: userId,
           email: email,
-          name: username,
+          username: username,
           displayName: username,
           photoUrl: defaultPhotoUrl,
         );
@@ -125,10 +125,10 @@ class AuthRepositoryImpl implements AuthRepository {
           await _localStorageService.saveUserId(userModel.id);
           await _localStorageService.saveUserEmail(userModel.email);
           await _localStorageService.saveUserName(
-            userModel.displayName ?? userModel.name,
+            userModel.displayName ?? userModel.username,
           );
           await _localStorageService.saveUserDisplayName(
-            userModel.displayName ?? userModel.name,
+            userModel.displayName ?? userModel.username,
           );
           await _localStorageService.saveUserPic(userModel.photoUrl ?? '');
 

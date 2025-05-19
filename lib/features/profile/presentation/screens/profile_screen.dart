@@ -116,8 +116,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final UserModel? userProfile = profileProvider.viewedUserProfile;
 
     final String displayName =
-        userProfile?.displayName ?? (userProfile?.name ?? "Usuario");
-    final String username = userProfile?.name ?? "@usuario";
+        userProfile?.displayName ?? (userProfile?.username ?? "Usuario");
+    final String username = userProfile?.username ?? "@usuario";
     final String photoUrl = userProfile?.photoUrl ?? '';
 
     // TODO: Obtener swapCount y ratingCount del userProfile o calcularlos

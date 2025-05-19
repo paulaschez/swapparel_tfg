@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "1044413000346",
-    "project_id": "chatapp-e153d",
-    "storage_bucket": "chatapp-e153d.firebasestorage.app"
+    "project_number": "121307270557",
+    "project_id": "swapparel-v1",
+    "storage_bucket": "swapparel-v1.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1044413000346:android:0d84df2d1080207d26cd23",
+        "mobilesdk_app_id": "1:121307270557:android:1f72b464b6b31269d03374",
         "android_client_info": {
           "package_name": "com.example.swapparel"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyC0Y-d5M-6sIEjkEJ16dilh7Zne4aAJl1A"
+          "current_key": "AIzaSyA8lxJ87nymk_3riPwqcGFOuJKH4lHQWPI"
         }
       ],
       "services": {

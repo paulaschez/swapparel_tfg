@@ -43,13 +43,13 @@ class TitleAndSubtitle extends StatelessWidget {
 
     return Column(
       children: [
-        // Título "SignUp"
+        
         Center(
           child: Text(
             title,
             style: TextStyle(
               color: Colors.white,
-              fontSize: size.width * 0.07, // Tamaño de fuente relativo
+              fontSize: size.width * 0.07, 
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -59,7 +59,7 @@ class TitleAndSubtitle extends StatelessWidget {
             subtitle,
             style: TextStyle(
               color: Color(0xFFbbb0ff),
-              fontSize: size.width * 0.05, // Tamaño de fuente relativo
+              fontSize: size.width * 0.05, 
               fontWeight: FontWeight.w500,
             ),
           ),

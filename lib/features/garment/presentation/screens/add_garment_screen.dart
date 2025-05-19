@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
+import 'package:swapparel/features/garment/presentation/provider/garment_provider.dart';
+import 'package:swapparel/features/profile/presentation/provider/profile_provider.dart';
 import '../../../../app/config/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
-// TODO: Importar GarmentProvider
 import 'package:image_picker/image_picker.dart';
 
 class AddGarmentScreen extends StatefulWidget {
@@ -77,7 +80,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
 
   // --- Función para mostrar opciones al añadir prenda ---
   void _showImagePickerOptions() {
-     FocusScope.of(context).unfocus();
+    FocusScope.of(context).unfocus();
     showModalBottomSheet(
       context: context,
       builder: (BuildContext bc) {
@@ -182,7 +185,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
     });
   }
 
-  void _submitGarment() {
+  void _submitGarment() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedImages.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -194,34 +197,61 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
         return;
       }
 
-      // TODO: Llamar al GarmentProvider para subir la prenda
-      // final garmentProvider = Provider.of<GarmentProvider>(context, listen: false);
-      // bool success = await garmentProvider.submitGarment(
-      //   name: _nameController.text,
-      //   description: _descriptionController.text,
-      //   category: _selectedCategory!,
-      //   size: _selectedSize,
-      //   condition: _selectedCondition!,
-      //   brand: _brandController.text,
-      //   color: _colorController.text,
-      //   material: _materialController.text,
-      //   images: _selectedImages,
-      // );
-      // if (success && mounted) {
-      //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Prenda subida con éxito!')));
-      //   context.pop(); // Volver a la pantalla anterior
-      // } else if (mounted) {
-      //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(garmentProvider.errorMessage ?? 'Error al subir la prenda.'), backgroundColor: Colors.redAccent));
-      // }
+      final garmentProvider = Provider.of<GarmentProvider>(
+        context,
+        listen: false,
+      );
+      final authProvider = Provider.of<AuthProviderC>(context, listen: false);
+      final profileProvider = Provider.of<ProfileProvider>(
+        context,
+        listen: false,
+      );
 
-      print(
-        "Subir Prenda: Nombre: ${_nameController.text}, Categoría: $_selectedCategory, Imágenes: ${_selectedImages.length}",
+      bool success = await garmentProvider.submitNewGarment(
+        name: _nameController.text.trim(),
+        description:
+            _descriptionController.text.trim().isNotEmpty
+                ? _descriptionController.text.trim()
+                : null,
+        category: _selectedCategory!,
+        size: _selectedSize,
+        condition: _selectedCondition!,
+        brand:
+            _brandController.text.trim().isNotEmpty
+                ? _brandController.text.trim()
+                : null,
+        color:
+            _colorController.text.trim().isNotEmpty
+                ? _colorController.text.trim()
+                : null,
+        material:
+            _materialController.text.trim().isNotEmpty
+                ? _materialController.text.trim()
+                : null,
+        images: _selectedImages,
       );
-      // Simular éxito y pop para UI
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('SIMULACIÓN: Prenda subida!')),
-      );
-      context.pop();
+
+      if (!mounted) return;
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('¡Prenda subida con éxito!')),
+        );
+        await profileProvider.refreshUserGarments(authProvider.currentUserId!);
+        context.pop();
+        print(
+          "Subir Prenda: Nombre: ${_nameController.text}, Categoría: $_selectedCategory, Imágenes: ${_selectedImages.length}",
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              garmentProvider.uploadErrorMessage ?? 'Error al subir la prenda.',
+            ),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 
@@ -503,9 +533,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
           SizedBox(height: ResponsiveUtils.verticalSpacing(context) * 0.4),
           TextFormField(
             controller: controller,
-            decoration: InputDecoration(
-              hintText: hint,
-            ), // El estilo ya viene del AppTheme
+            decoration: InputDecoration(hintText: hint),
             maxLines: maxLines,
             keyboardType: keyboardType,
             validator:
@@ -552,10 +580,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
           ),
           SizedBox(height: ResponsiveUtils.verticalSpacing(context) * 0.4),
           DropdownButtonFormField<String>(
-            decoration: InputDecoration(
-              hintText: hint,
-              isDense: true,
-            ), 
+            decoration: InputDecoration(hintText: hint, isDense: true),
             value: value,
             isExpanded: true,
             items:

@@ -4,6 +4,8 @@ import 'package:swapparel/app/config/routes/app_router.dart';
 import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
 import 'package:swapparel/features/feed/data/repositories/feed_repository.dart';
 import 'package:swapparel/features/feed/presentation/provider/feed_provider.dart';
+import 'package:swapparel/features/garment/data/repositories/garment_repository.dart';
+import 'package:swapparel/features/garment/presentation/provider/garment_provider.dart';
 import 'package:swapparel/features/profile/data/repositories/profile_repository.dart';
 import 'package:swapparel/features/profile/presentation/provider/profile_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -65,6 +67,12 @@ class MyAppInitializer extends StatelessWidget {
               (_, firestore, __) => FeedRepositoryImpl(firestore: firestore),
         ),
 
+        ProxyProvider2<FirebaseFirestore, FirebaseStorage, GarmentRepository>(
+          update:
+              (_, firestore, storage, __) =>
+                  GarmentRepositoryImpl(firestore: firestore, storage: storage),
+        ),
+
         // ChangeNotifierProviders
         ChangeNotifierProvider<AuthProviderC>(
           create:
@@ -106,6 +114,33 @@ class MyAppInitializer extends StatelessWidget {
             }
           },
         ),
+        ChangeNotifierProxyProvider2<
+          AuthProviderC,
+          GarmentRepository,
+          GarmentProvider
+        >(
+          create:
+              (context) => GarmentProvider(
+                garmentRepository: context.read<GarmentRepository>(),
+                authProvider: context.read<AuthProviderC>(),
+              ),
+          update: (
+            context,
+            authProvider,
+            garmentRepo,
+            previousGarmentProvider,
+          ) {
+            if (previousGarmentProvider == null ||
+                authProvider.currentUserId !=
+                    previousGarmentProvider.authProvider.currentUserId) {
+              return GarmentProvider(
+                authProvider: authProvider,
+                garmentRepository: garmentRepo,
+              );
+            }
+            return previousGarmentProvider;
+          },
+        ),
       ],
       child: const MyApp(),
     );
@@ -140,56 +175,3 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
-
-/*
-
-// Widget para decidir si mostrar Login o Home basado en Auth
-
-class AuthWrapper extends StatefulWidget {
-  const AuthWrapper({super.key});
-
-  @override
-  State<AuthWrapper> createState() => _AuthWrapperState();
-}
-
- class _AuthWrapperState extends State<AuthWrapper> {
-  @override
-  void initState() {
-    super.initState();
-    print('AuthWrapper: initState called');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    print("AuthWrapper: Build method called");
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          ); // Esperando conexión
-        }
-
-         if (snapshot.hasError) {
-        print("AuthWrapper StreamBuilder: Error in stream: ${snapshot.error}");
-        return const Scaffold(body: Center(child: Text("Error de autenticación")));
-      }
-        if (snapshot.hasData && snapshot.data != null) {
-          print(
-            "AuthWrapper StreamBuilder: User is logged in! UID: ${snapshot.data!.uid}. Navigating to MainAppScreen.",
-          );
-          // Usuario está logueado
-          return MainAppScreen();
-        } else {
-          print(
-            "AuthWrapper StreamBuilder: No user / User is null. Navigating to SignIn.",
-          );
-          // Usuario no está logueado
-          return const SignIn();
-        }
-      },
-    );
-  }
-}
- */
