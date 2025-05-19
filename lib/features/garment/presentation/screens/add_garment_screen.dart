@@ -337,8 +337,9 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
                                 ),
                               );
                             }
-                            if (index >= _selectedImages.length)
+                            if (index >= _selectedImages.length) {
                               return const SizedBox.shrink(); // Seguridad
+                            }
 
                             // Miniatura de imagen seleccionada
                             return Padding(
@@ -554,7 +555,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
             decoration: InputDecoration(
               hintText: hint,
               isDense: true,
-            ), // El estilo ya viene del AppTheme
+            ), 
             value: value,
             isExpanded: true,
             items:

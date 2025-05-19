@@ -129,7 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         leading:
-            isMyProfile!
+            isMyProfile
                 ? IconButton(
                   icon: Icon(
                     Icons.arrow_back_ios_new,
