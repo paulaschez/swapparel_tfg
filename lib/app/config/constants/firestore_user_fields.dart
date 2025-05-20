@@ -1,0 +1,9 @@
+const String emailField = 'email'; 
+const String nameField = 'name';
+const String usernameField = 'username';
+const String locationField = 'location';
+const String photoUrlField= 'photoUrl';
+const String createdAtField = 'createdAt';
+const String swapCountField = 'succesfulSwaps';
+const String ratingCountField = 'ratingCount';
+const String averageRatingField = 'averageRatingField';

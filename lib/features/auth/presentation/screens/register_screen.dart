@@ -143,7 +143,7 @@ class _SignUpState extends State<SignUp> {
                           final success = await authProvider.signUp(
                             email: _mailCtrl.text.trim(),
                             password: _passwordCtrl.text.trim(),
-                            username: _nameCtrl.text.trim(),
+                            name: _nameCtrl.text.trim(),
                           );
 
                           if (mounted && success) {

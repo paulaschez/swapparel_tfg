@@ -47,28 +47,28 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBGDbQmAPN98psrosObwbnJg5P2jZu4cQ0',
-    appId: '1:1044413000346:web:12ce87f6d2a64b6026cd23',
-    messagingSenderId: '1044413000346',
-    projectId: 'chatapp-e153d',
-    authDomain: 'chatapp-e153d.firebaseapp.com',
-    storageBucket: 'chatapp-e153d.firebasestorage.app',
+    apiKey: 'AIzaSyCEj3VfNTjmNoTU_CnbY6pFJdYrcjRO0RI',
+    appId: '1:121307270557:web:6d5f9c5ad1157cdbd03374',
+    messagingSenderId: '121307270557',
+    projectId: 'swapparel-v1',
+    authDomain: 'swapparel-v1.firebaseapp.com',
+    storageBucket: 'swapparel-v1.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyC0Y-d5M-6sIEjkEJ16dilh7Zne4aAJl1A',
-    appId: '1:1044413000346:android:0d84df2d1080207d26cd23',
-    messagingSenderId: '1044413000346',
-    projectId: 'chatapp-e153d',
-    storageBucket: 'chatapp-e153d.firebasestorage.app',
+    apiKey: 'AIzaSyA8lxJ87nymk_3riPwqcGFOuJKH4lHQWPI',
+    appId: '1:121307270557:android:1f72b464b6b31269d03374',
+    messagingSenderId: '121307270557',
+    projectId: 'swapparel-v1',
+    storageBucket: 'swapparel-v1.firebasestorage.app',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyBGDbQmAPN98psrosObwbnJg5P2jZu4cQ0',
-    appId: '1:1044413000346:web:1e532a01b2806dd726cd23',
-    messagingSenderId: '1044413000346',
-    projectId: 'chatapp-e153d',
-    authDomain: 'chatapp-e153d.firebaseapp.com',
-    storageBucket: 'chatapp-e153d.firebasestorage.app',
+    apiKey: 'AIzaSyCEj3VfNTjmNoTU_CnbY6pFJdYrcjRO0RI',
+    appId: '1:121307270557:web:7740e132e7e9fe6cd03374',
+    messagingSenderId: '121307270557',
+    projectId: 'swapparel-v1',
+    authDomain: 'swapparel-v1.firebaseapp.com',
+    storageBucket: 'swapparel-v1.firebasestorage.app',
   );
 }

@@ -45,13 +45,6 @@ class GarmentProvider extends ChangeNotifier {
       return false;
     }
 
-    // Validacion en addGarmentScreen
-    /* if (images.isEmpty) {
-      _setUploadError(
-        "Por favor, selecciona al menos una imagen para la prenda.",
-      );
-      return false;
-    } */
     final UserModel owner = _authProvider.currentUserModel!;
     final String ownerUsername = owner.username;
     final String? ownerPhotoUrl = owner.photoUrl;

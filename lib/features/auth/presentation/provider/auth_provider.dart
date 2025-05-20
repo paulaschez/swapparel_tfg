@@ -44,17 +44,25 @@ class AuthProviderC extends ChangeNotifier {
   Future<bool> signUp({
     required String email,
     required String password,
-    required String username,
+    required String name,
   }) async {
     _setLoading(true);
     bool success = false;
 
     try {
+      final bool emailExists = await _authRepository.checkIfEmailExists(email);
+      if (emailExists) {
+        _setError(
+          "Este correo electrónico ya está registrado en nuestra base de datos.",
+        );
+        _setLoading(false);
+        return false;
+      }
       // Llama al metodo del repositorio
       final userCredential = await _authRepository.signUpWithEmailPassword(
         email: email,
         password: password,
-        username: username,
+        name: name,
       );
       success = userCredential != null;
 
@@ -63,7 +71,7 @@ class AuthProviderC extends ChangeNotifier {
           "AuthProviderC: SignUp success, currentUser: ${_authRepository.currentUser?.uid}",
         );
       } else if (!success && _errorMessage == null) {
-         _setError("Fallo el registro."); 
+        _setError("Fallo el registro.");
       }
     } on FirebaseAuthException catch (e) {
       _setError(_mapFirebaseAuthExceptionMessage(e));
@@ -86,16 +94,15 @@ class AuthProviderC extends ChangeNotifier {
         email,
         password,
       );
-      if(userModel != null){
+      if (userModel != null) {
         _currentUserModel = userModel;
-         success = true;
+        success = true;
       } else /* if(_authRepository.currentUser != null){
         print("AuthProviderC: SignIn (Auth) success, UserModel will be fetched by authStateChanges.");
         success = true; 
-      } */{
-        if(_errorMessage == null) _setError("Fallo el inicio de sesión.");
+      } */ {
+        if (_errorMessage == null) _setError("Fallo el inicio de sesión.");
       }
-     
     } on FirebaseAuthException catch (e) {
       _setError(_mapFirebaseAuthExceptionMessage(e));
     } catch (e) {
@@ -167,9 +174,7 @@ class AuthProviderC extends ChangeNotifier {
     } catch (e) {
       print("AuthProviderC: Error fetching UserModel: $e");
       _currentUserModel = null;
-      _setError(
-        "No se pudieron cargar los datos del perfil del usuario.",
-      ); 
+      _setError("No se pudieron cargar los datos del perfil del usuario.");
     }
     notifyListeners();
   }

@@ -1,105 +1,105 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-
 abstract class ILocalStorageService {
   Future<bool> saveUserId(String userId);
   Future<bool> saveUserEmail(String userEmail);
-  Future<bool> saveUserName(String userName);
-  Future<bool> saveUserPic(String userPic);
-  Future<bool> saveUserDisplayName(String userDisplayName);
+  Future<bool> saveUserName(String name);
+  Future<bool> saveUserPhotoUrl(String? userPic);
+  Future<bool> saveUserAtUsername(String? atUsername);
   Future<String?> getUserId();
   Future<String?> getUserEmail();
   Future<String?> getUserName();
-  Future<String?> getUserPic();
-  Future<String?> getUserDisplayName();
-  Future<void> clearUserData(); 
+  Future<String?> getUserPhotoUrl();
+  Future<String?> getUserAtUsername();
+  Future<void> clearUserData();
 }
 
 class LocalStorageServiceImpl implements ILocalStorageService {
   // Claves
-  static const String _userIdKey = "USERID_KEY"; 
-  static const String _userNameKey = "USERNAME_KEY";
-  static const String _userEmailKey = "USEREMAIL_KEY";
-  static const String _userPicKey = "USERPIC_KEY";
-  static const String _userDisplayNameKey = "USERDISPLAYNAME_KEY";
+  static const String _kUserIdKey = "USER_ID_KEY";
+  static const String _kUserEmailKey = "USER_EMAIL_KEY";
+  static const String _kUserNameKey = "USER_NAME_KEY"; // Para el nombre real
+  static const String _kUserAtUsernameKey =
+      "USER_AT_USERNAME_KEY"; // Para el @username
+  static const String _kUserPhotoUrlKey = "USER_PHOTO_URL_KEY";
 
-  // Obtiene la instancia de SharedPreferences 
+  // Obtiene la instancia de SharedPreferences
   Future<SharedPreferences> _getPrefs() async {
     return await SharedPreferences.getInstance();
   }
 
   // Guarda el ID del usuario
   @override
-  Future<bool> saveUserId(String getUserId) async {
+  Future<bool> saveUserId(String userId) async {
     final prefs = await _getPrefs();
-    return prefs.setString(_userIdKey, getUserId);
+    return prefs.setString(_kUserIdKey, userId);
   }
 
   @override
-  Future<bool> saveUserEmail(String getUserEmail) async {
+  Future<bool> saveUserEmail(String userEmai) async {
     final prefs = await _getPrefs();
-    return prefs.setString(_userEmailKey, getUserEmail);
-  }
-
-
-  @override
-  Future<bool> saveUserName(String getUserName) async {
-    final prefs = await _getPrefs();
-    return prefs.setString(_userNameKey, getUserName);
+    return prefs.setString(_kUserEmailKey, userEmai);
   }
 
   @override
-  Future<bool> saveUserPic(String getUserPic) async { 
+  Future<bool> saveUserName(String name) async {
     final prefs = await _getPrefs();
-    return prefs.setString(_userPicKey, getUserPic);
+    return prefs.setString(_kUserNameKey, name);
   }
 
   @override
-  Future<bool> saveUserDisplayName(String getUserDisplayName) async { // Renombrado de 'saver' a 'save'
+  Future<bool> saveUserPhotoUrl(String? photoUrl) async {
     final prefs = await _getPrefs();
-    return prefs.setString(_userDisplayNameKey, getUserDisplayName);
+    if (photoUrl != null) {
+      return prefs.setString(_kUserPhotoUrlKey, photoUrl);
+    } else {
+      return prefs.remove(_kUserPhotoUrlKey);
+    }
+  }
+
+  @override
+  Future<bool> saveUserAtUsername(String? atUsername) async {
+     final prefs = await _getPrefs();
+    if (atUsername != null) {
+      return prefs.setString(_kUserAtUsernameKey, atUsername);
+    } else {
+      return prefs.remove(_kUserAtUsernameKey); 
+    }
   }
 
   @override
   Future<String?> getUserId() async {
     final prefs = await _getPrefs();
-    return prefs.getString(_userIdKey);
+    return prefs.getString(_kUserIdKey);
   }
 
   @override
   Future<String?> getUserEmail() async {
     final prefs = await _getPrefs();
-    return prefs.getString(_userEmailKey);
+    return prefs.getString(_kUserEmailKey);
   }
 
   @override
-  Future<String?> getUserName() async {
+  Future<String?> getUserName() async { // Devuelve el nombre real
     final prefs = await _getPrefs();
-    return prefs.getString(_userNameKey);
+    return prefs.getString(_kUserNameKey);
   }
 
   @override
-  Future<String?> getUserPic() async {
+  Future<String?> getUserAtUsername() async { // Devuelve el @username
     final prefs = await _getPrefs();
-    return prefs.getString(_userPicKey);
+    return prefs.getString(_kUserAtUsernameKey);
   }
 
   @override
-  Future<String?> getUserDisplayName() async {
+  Future<String?> getUserPhotoUrl() async {
     final prefs = await _getPrefs();
-    return prefs.getString(_userDisplayNameKey);
-  }  
+    return prefs.getString(_kUserPhotoUrlKey);
+  }
 
   @override
   Future<void> clearUserData() async {
     final prefs = await _getPrefs();
-    await prefs.remove(_userIdKey);
-    await prefs.remove(_userEmailKey);
-    await prefs.remove(_userNameKey);
-    await prefs.remove(_userPicKey);
-    await prefs.remove(_userDisplayNameKey);
+    await prefs.clear();
   }
-  
-  
-
 }

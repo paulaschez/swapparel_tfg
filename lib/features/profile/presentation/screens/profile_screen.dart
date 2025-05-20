@@ -115,8 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final String? errorMessage = profileProvider.profileErrorMessage;
     final UserModel? userProfile = profileProvider.viewedUserProfile;
 
-    final String displayName =
-        userProfile?.displayName ?? (userProfile?.username ?? "Usuario");
+    final String name = userProfile?.name ?? 'nombre';
     final String username = userProfile?.username ?? "@usuario";
     final String photoUrl = userProfile?.photoUrl ?? '';
 
@@ -239,7 +238,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       SizedBox(height: verticalSpacing * 1.2),
                       Text(
-                        displayName,
+                        name,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontSize: ResponsiveUtils.fontSize(
                             context,

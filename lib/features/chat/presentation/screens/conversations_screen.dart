@@ -18,104 +18,102 @@ class _ChatListScreenState extends State<ChatListScreen> {
       backgroundColor: const Color(0xFF553370),
       body: SafeArea(
         bottom: false,
-        child: Container(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20.0,
-                  vertical: 10.0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _isSearching
-                        ? Expanded(
-                          child: TextField(
-                            decoration: InputDecoration(
-                              border: InputBorder.none,
-                              hintText: 'Search User',
-                              hintStyle: TextStyle(
-                                color: Colors.black,
-                                fontSize: 20.0,
-                                fontWeight: FontWeight.w500,
-                              )
-                              ,
-                            ),
-                            style: TextStyle(color: Colors.black, fontSize: 18.0, fontWeight: FontWeight.w500),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 10.0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _isSearching
+                      ? Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'Search User',
+                            hintStyle: TextStyle(
+                              color: Colors.black,
+                              fontSize: 20.0,
+                              fontWeight: FontWeight.w500,
+                            )
+                            ,
                           ),
-                        )
-                        : Text(
-                          "ChatUp",
-                          style: TextStyle(
-                            color: Color(0Xffc199cd),
-                            fontSize:
-                                size.width * 0.06, // Tamaño relativo al ancho
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(color: Colors.black, fontSize: 18.0, fontWeight: FontWeight.w500),
                         ),
-                    GestureDetector(
-                      onTap: () {
-                        _isSearching = true;
-
-                        setState(() {});
-                      },
-                      child: Container(
-                        padding: EdgeInsets.all(size.width * 0.02),
-                        decoration: BoxDecoration(
-                          color: Color(0xFF3a2144),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Icon(
-                          Icons.search,
+                      )
+                      : Text(
+                        "ChatUp",
+                        style: TextStyle(
                           color: Color(0Xffc199cd),
-                          size: size.width * 0.06,
+                          fontSize:
+                              size.width * 0.06, // Tamaño relativo al ancho
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
+                  GestureDetector(
+                    onTap: () {
+                      _isSearching = true;
+        
+                      setState(() {});
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(size.width * 0.02),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF3a2144),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Icon(
+                        Icons.search,
+                        color: Color(0Xffc199cd),
+                        size: size.width * 0.06,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  vertical: size.height * 0.035,
+                  horizontal: size.width * 0.05,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    ChatEntry(
+                      size: size,
+                      image: "assets/boy.jpg",
+                      name: "Shivam Gupta",
+                      mssg: "Hello, What are you doing?",
+                      hour: "04:30 PM",
+                    ),
+                    Divider(
+                      height: size.height * 0.02, // Altura del Divider
+                      thickness: 1, // Grosor de la línea
+                      color: Colors.black12, // Color de la línea
+                    ),
+                    ChatEntry(
+                      size: size,
+                      image: "assets/woman.png",
+                      name: "Sara Martínez",
+                      mssg: "Me está dando un error enorme",
+                      hour: "04:30 PM",
                     ),
                   ],
                 ),
               ),
-              Expanded(
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    vertical: size.height * 0.035,
-                    horizontal: size.width * 0.05,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      ChatEntry(
-                        size: size,
-                        image: "assets/boy.jpg",
-                        name: "Shivam Gupta",
-                        mssg: "Hello, What are you doing?",
-                        hour: "04:30 PM",
-                      ),
-                      Divider(
-                        height: size.height * 0.02, // Altura del Divider
-                        thickness: 1, // Grosor de la línea
-                        color: Colors.black12, // Color de la línea
-                      ),
-                      ChatEntry(
-                        size: size,
-                        image: "assets/woman.png",
-                        name: "Sara Martínez",
-                        mssg: "Me está dando un error enorme",
-                        hour: "04:30 PM",
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

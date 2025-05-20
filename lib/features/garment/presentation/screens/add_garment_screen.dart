@@ -30,7 +30,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
   String? _selectedCategory;
   String? _selectedSize;
   String? _selectedCondition;
-  List<File> _selectedImages = [];
+  final List<File> _selectedImages = [];
 
   // TODO: Definir Enums para opciones de Dropdown
   final List<String> _categories = [
