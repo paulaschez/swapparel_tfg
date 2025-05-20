@@ -1,15 +1,17 @@
 // ignore_for_file: avoid_print
 
+import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:swapparel/app/config/theme/app_theme.dart';
+import 'package:swapparel/core/utils/image_picker_utils.dart';
 import 'package:swapparel/core/utils/responsive_utils.dart';
+import 'package:swapparel/features/auth/data/models/user_model.dart';
 import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-// TODO: Importar AuthProviderC para el logout y ProfileProvider para cargar/guardar datos
-// import 'package:provider/provider.dart';
-// import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
-// import 'package:swapparel/features/profile/presentation/provider/profile_provider.dart';
+import 'package:swapparel/features/profile/presentation/provider/profile_provider.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -19,42 +21,33 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
+  late UserModel? _user;
+  File? _pickedProfileImage;
+
   // Controladores para los campos de texto
-  // TODO: Inicializarlos con los datos actuales del usuario desde el ProfileProvider en initState
-  final TextEditingController _nameController = TextEditingController(
-    text: "Nombre Placeholder",
-  );
-  final TextEditingController _usernameController = TextEditingController(
-    text: "@username_placeholder",
-  );
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   // El correo no se edita, se muestra. La ubicación sí.
-  final TextEditingController _locationController = TextEditingController(
-    text: "Ubicación Placeholder",
-  );
+  final TextEditingController _locationController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>(); // Para validación si la añades
 
   @override
   void initState() {
     super.initState();
-    // TODO: Cargar datos del perfil actual en los controllers
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
-    //   final authProvider = Provider.of<AuthProviderC>(context, listen: false);
-    //   if (authProvider.currentUserId != null) {
-    //     // Asumiendo que ProfileProvider tiene un método para obtener el UserModel actual
-    //     // o que ya lo tiene cargado.
-    //     final user = profileProvider.currentUserProfileData; // Necesitarías este getter
-    //     if (user != null) {
-    //       _nameController.text = user.name ?? '';
-    //       _usernameController.text = user.usernameFromEmailIfNotSet; // Un getter en UserModel
-    //       _locationController.text = user.location ?? '';
-    //     } else {
-    //        // Quizás llamar a un método para cargar el perfil si no está
-    //        // profileProvider.fetchProfile(authProvider.currentUserId!);
-    //     }
-    //   }
-    // });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProviderC>(context, listen: false);
+      if (authProvider.currentUserId != null) {
+        _user = authProvider.currentUserModel;
+        if (_user != null) {
+          _nameController.text = _user!.name;
+          _usernameController.text = _user!.username;
+          _locationController.text = _user!.location ?? '';
+        } else {
+          print("error se ha no hay cargado un usuario en el modelo");
+        }
+      }
+    });
   }
 
   @override
@@ -71,7 +64,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text('Confirmar cierre de sesión', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            'Confirmar cierre de sesión',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
           backgroundColor: AppColors.lightGreen,
           actions: [
@@ -81,7 +77,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   dialogContext,
                 ).pop(false); // Cierra el dialogo y devuelve false
               },
-              child: const Text('Cancelar',),
+              child: const Text('Cancelar'),
             ),
             TextButton(
               style: TextButton.styleFrom(
@@ -108,11 +104,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  Future<void> _handleImageSelection() async {
+    final imageUtils = ImagePickerUtils();
+    final File? image = await imageUtils.pickImage(context);
+
+    if (image != null) {
+      setState(() {
+        _pickedProfileImage = image;
+        print("imagen seleccionada: ${image.path}");
+      });
+    } else {
+      print("Selección de imagen cancelada o fallida");
+    }
+  }
+
   // Método helper para construir cada fila del formulario
   Widget _buildProfileDetailRow(
     BuildContext context,
     String label,
-    TextEditingController controller, {
+    TextEditingController controller,
+    FormFieldValidator validator, {
     bool readOnly = false,
     TextInputType keyboardType = TextInputType.text,
   }) {
@@ -143,6 +154,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               controller: controller,
               readOnly: readOnly,
               keyboardType: keyboardType,
+              validator: validator,
               style: TextStyle(
                 fontSize: ResponsiveUtils.fontSize(
                   context,
@@ -150,8 +162,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   maxSize: 17,
                 ),
               ),
-
-              // TODO: Añadir validadores 
             ),
           ),
         ],
@@ -161,19 +171,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final double avatarRadius = ResponsiveUtils.avatarRadius(context) ;
+    final double avatarRadius = ResponsiveUtils.avatarRadius(context);
     final double verticalSpacing = ResponsiveUtils.verticalSpacing(context);
     final double largeVerticalSpacing = ResponsiveUtils.largeVerticalSpacing(
       context,
     );
 
-    // TODO: Obtener datos reales del ProfileProvider
-    // const String placeholderPhotoUrl = profileProvider.currentUserProfileData?.photoUrl ?? '';
-    // final String email = authProvider.currentUser?.email ?? "tucorreo@gmail.com";
-    // --- Datos de ejemplo ---
+    final authProvider = context.watch<AuthProviderC>();
 
-    const String placeholderPhotoUrl = '';
-    const String email = "tucorreo@gmail.com";
+    String placeholderPhotoUrl = authProvider.currentUserModel?.photoUrl ?? '';
+    final String email =
+        authProvider.currentUserModel?.email ?? "tucorreo@gmail.com";
 
     return Scaffold(
       appBar: AppBar(
@@ -201,13 +209,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              // TODO: Validar formulario: if (_formKey.currentState!.validate()) { ... }
-              // TODO: Llamar a profileProvider.updateUserProfile(
-              //   name: _nameController.text,
-              //   username: _usernameController.text,
-              //   location: _locationController.text,
-              //   // y la nueva photoUrl si se cambió
-              // );
+              if (_formKey.currentState!.validate()) {
+                final authP = Provider.of<AuthProviderC>(
+                  context,
+                  listen: false,
+                );
+                final profileP = Provider.of<ProfileProvider>(
+                  context,
+                  listen: false,
+                );
+
+                if (authP.currentUserId == null) {
+                  return;
+                }
+
+                profileP.updateUserProfile(
+                  userId: authProvider.currentUserModel!.id,
+                  name: _nameController.text,
+                  username: _usernameController.text,
+                  location: _locationController.text,
+                  newProfileImage: _pickedProfileImage
+                );
+              }
+
               print(
                 "Guardar cambios: Nombre: ${_nameController.text}, User: ${_usernameController.text}",
               );
@@ -241,13 +265,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       radius: avatarRadius,
                       backgroundColor: Colors.grey[300],
                       backgroundImage:
-                          placeholderPhotoUrl.isNotEmpty
-                              ? NetworkImage(
-                                placeholderPhotoUrl,
-                              ) // TODO: Usar CachedNetworkImage
-                              : null,
+                          _pickedProfileImage != null
+                              ? FileImage(_pickedProfileImage!)
+                              : (placeholderPhotoUrl.isNotEmpty
+                                  ? CachedNetworkImageProvider(
+                                    placeholderPhotoUrl,
+                                  )
+                                  : null),
                       child:
-                          placeholderPhotoUrl.isEmpty
+                          (_pickedProfileImage == null &&
+                                  placeholderPhotoUrl.isEmpty)
                               ? Icon(
                                 Icons.person,
                                 size: avatarRadius * 0.9,
@@ -256,9 +283,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               : null,
                     ),
                     TextButton(
-                      onPressed: () {
-                        // TODO: Implementar _showImageSourceActionSheet (cámara/galería)
-                        print("Editar foto presionado");
+                      onPressed: () async {
+                        _handleImageSelection();
                       },
                       child: Text(
                         "Cambiar foto",
@@ -275,12 +301,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     SizedBox(height: largeVerticalSpacing),
                     const Divider(),
                     SizedBox(height: verticalSpacing * 1.2),
-                    _buildProfileDetailRow(context, "Nombre:", _nameController),
+                    _buildProfileDetailRow(
+                      context,
+                      "Nombre:",
+                      _nameController,
+                      (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Debe introducir un nombre.';
+                        }
+                        return null;
+                      },
+                    ),
                     const Divider(height: 1),
                     _buildProfileDetailRow(
                       context,
                       "Nombre de usuario:",
                       _usernameController,
+                      (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Debe introducir el nombre de usuario';
+                        }
+                        return null;
+                      },
                     ),
                     const Divider(height: 1),
                     // Correo (no editable)
@@ -337,6 +379,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       context,
                       "Ubicación:",
                       _locationController,
+                      (value) => null,
                     ),
                     SizedBox(height: largeVerticalSpacing * 1.5),
                     // --- BOTÓN CERRAR SESIÓN ---
@@ -344,7 +387,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       width: double.infinity,
                       child: TextButton(
                         onPressed: () async {
-                          // TODO: Mostrar diálogo de confirmación
                           _confirmSignOut(context);
                           print("Cerrar Sesión presionado");
                         },
