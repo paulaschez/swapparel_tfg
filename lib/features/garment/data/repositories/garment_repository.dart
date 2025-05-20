@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../models/garment_model.dart';
 import '../../../../app/config/constants/firestore_collections.dart';
@@ -9,7 +11,7 @@ abstract class GarmentRepository {
   Future<List<String>> uploadGarmentImages({
     required String userId,
     required String garmentId,
-    required List<File> imageFiles,
+    required List<XFile> imageFiles,
   });
   Future<void> addGarmentData(GarmentModel garmentData);
   Future<GarmentModel?> getGarmentById(String garmentId);
@@ -93,7 +95,7 @@ class GarmentRepositoryImpl implements GarmentRepository {
       );
     } catch (e) {
       print("GarmentRepo Error - deleteGarment: $e");
-      // ¿que hacer si algo falla? 
+      // ¿que hacer si algo falla?
       throw Exception("Failed to delete garment completely. Error: $e");
     }
   }
@@ -133,21 +135,32 @@ class GarmentRepositoryImpl implements GarmentRepository {
   Future<List<String>> uploadGarmentImages({
     required String userId,
     required String garmentId,
-    required List<File> imageFiles,
+    required List<XFile> imageFiles,
   }) async {
     if (imageFiles.isEmpty) return [];
     List<String> downloadUrls = [];
 
     try {
       for (int i = 0; i < imageFiles.length; i++) {
-        final file = imageFiles[i];
+        final xFile = imageFiles[i];
         final String fileName =
-            'garment_images/$userId/$garmentId/image_${_uuid.v4()}.jpg';
+            'garment_images/$userId/$garmentId/image_${_uuid.v4()}${xFile.mimeType?.replaceAll("image/", ".") ?? ".jpg"}';
         final Reference storageRef = _storage.ref().child(fileName);
-        final UploadTask uploadTask = storageRef.putFile(
-          file,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
+        final UploadTask uploadTask;
+
+        if (kIsWeb) {
+          final Uint8List bytes = await xFile.readAsBytes();
+          uploadTask = storageRef.putData(
+            bytes,
+            SettableMetadata(contentType: xFile.mimeType ?? 'image/jpeg'),
+          );
+        } else {
+          uploadTask = storageRef.putFile(
+            File(xFile.path),
+            SettableMetadata(contentType: xFile.mimeType ?? 'image/jpeg'),
+          );
+        }
+
         final TaskSnapshot snapshot = await uploadTask;
         final String downloadUrl = await snapshot.ref.getDownloadURL();
         downloadUrls.add(downloadUrl);

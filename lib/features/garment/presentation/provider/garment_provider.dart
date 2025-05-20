@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:swapparel/features/auth/data/models/user_model.dart';
 import 'package:uuid/uuid.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -36,7 +36,7 @@ class GarmentProvider extends ChangeNotifier {
     String? brand,
     String? color,
     String? material,
-    required List<File> images,
+    required List<XFile> images,
   }) async {
     if (_authProvider.currentUserModel == null) {
       _setUploadError(

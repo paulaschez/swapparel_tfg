@@ -1,8 +1,11 @@
 // ignore_for_file: avoid_print
 
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:swapparel/app/config/theme/app_theme.dart';
 import 'package:swapparel/core/utils/image_picker_utils.dart';
 import 'package:swapparel/core/utils/responsive_utils.dart';
@@ -22,7 +25,8 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late UserModel? _user;
-  File? _pickedProfileImage;
+  XFile? _pickedProfileImage;
+  Uint8List? _pickedProfileImageBytes;
 
   // Controladores para los campos de texto
   final TextEditingController _nameController = TextEditingController();
@@ -106,11 +110,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _handleImageSelection() async {
     final imageUtils = ImagePickerUtils();
-    final File? image = await imageUtils.pickImage(context);
+    final XFile? image = await imageUtils.pickImage(context);
 
     if (image != null) {
       setState(() {
         _pickedProfileImage = image;
+        if(kIsWeb){
+          image.readAsBytes().then((bytes) {
+              if (mounted) {
+                setState(() {
+                  _pickedProfileImageBytes = bytes;
+                });
+              }
+            });
+        }
         print("imagen seleccionada: ${image.path}");
       });
     } else {
@@ -228,7 +241,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   name: _nameController.text,
                   username: _usernameController.text,
                   location: _locationController.text,
-                  newProfileImage: _pickedProfileImage
+                  newProfileImage: File(_pickedProfileImage!.path),
                 );
               }
 
@@ -264,9 +277,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     CircleAvatar(
                       radius: avatarRadius,
                       backgroundColor: Colors.grey[300],
-                      backgroundImage:
+                      backgroundImage: kIsWeb && _pickedProfileImageBytes != null ? MemoryImage(_pickedProfileImageBytes!) :
                           _pickedProfileImage != null
-                              ? FileImage(_pickedProfileImage!)
+                              ? FileImage(File(_pickedProfileImage!.path))
                               : (placeholderPhotoUrl.isNotEmpty
                                   ? CachedNetworkImageProvider(
                                     placeholderPhotoUrl,

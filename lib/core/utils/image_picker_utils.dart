@@ -1,7 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
@@ -10,7 +8,7 @@ class ImagePickerUtils {
   final ImagePicker _picker = ImagePicker();
 
 
-  Future<File?> pickImage(BuildContext context) async {
+  Future<XFile?> pickImage(BuildContext context) async {
     bool isMobilePlatform =
         (defaultTargetPlatform == TargetPlatform.android ||
             defaultTargetPlatform == TargetPlatform.iOS);
@@ -58,7 +56,7 @@ class ImagePickerUtils {
   }
 
   // Metodo para manejar la seleccion / toma de fotos
-  Future<File?> _pickImage(ImageSource source) async {
+  Future<XFile?> _pickImage(ImageSource source) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
@@ -73,7 +71,7 @@ class ImagePickerUtils {
           final Uint8List imageBytes = await pickedFile.readAsBytes();
 
         } */
-        return File(pickedFile.path);
+        return pickedFile;
       }
     } catch (e) {
       print("ImagePickerUtils Error - _pickImage: $e");
