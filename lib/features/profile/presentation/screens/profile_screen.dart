@@ -328,41 +328,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ? _buildGarmentGrid(garments)
                                   : ConstrainedBox(
                                     constraints: BoxConstraints(maxHeight: 120),
-                                    child: Expanded(
-                                      child: Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              "No hay prendas subidas aún. ",
-                                              style: TextStyle(
-                                                fontSize:
-                                                    ResponsiveUtils.fontSize(
-                                                      context,
-                                                      baseSize: 18,
-                                                    ),
-                                                color: AppColors.primaryGreen,
-                                              ),
+                                    child: Column(
+                                      children: [
+                                        Expanded(
+                                          child: Center(
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  "No hay prendas subidas aún. ",
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        ResponsiveUtils.fontSize(
+                                                          context,
+                                                          baseSize: 18,
+                                                        ),
+                                                    color: AppColors.primaryGreen,
+                                                  ),
+                                                ),
+                                        
+                                                Text(
+                                                  isMyProfile
+                                                      ? "¡Sube alguna!"
+                                                      : '',
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        ResponsiveUtils.fontSize(
+                                                          context,
+                                                          baseSize: 18,
+                                                        ),
+                                                    color: AppColors.primaryGreen,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-
-                                            Text(
-                                              isMyProfile
-                                                  ? "¡Sube alguna!"
-                                                  : '',
-                                              style: TextStyle(
-                                                fontSize:
-                                                    ResponsiveUtils.fontSize(
-                                                      context,
-                                                      baseSize: 18,
-                                                    ),
-                                                color: AppColors.primaryGreen,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
                                   ),
                             ],

@@ -2,6 +2,7 @@ import 'dart:io'; // Para File
 import 'package:swapparel/app/config/constants/firestore_collections.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Para DocumentSnapshot
+import 'package:swapparel/app/config/constants/firestore_user_fields.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../garment/data/models/garment_model.dart';
@@ -109,42 +110,61 @@ class ProfileProvider extends ChangeNotifier {
     await fetchUserProfileAndGarments(userId, isRefresh: true);
   }
 
-  Future<void> updateUserProfile({
+  Future<bool> updateUserProfile({
     required String userId,
     String? name,
     String? username,
     String? location,
     File? newProfileImage,
+    String? currentUsername,
   }) async {
     _isLoadingProfile = true;
     _profileErrorMessage = null;
     notifyListeners();
     try {
+      if (username != null &&
+          username.isNotEmpty &&
+          username != currentUsername) {
+        final bool usernameExists = await _profileRepository
+            .checkIfUsernameExists(
+              username,
+              currentUserId: userId, // Para excluirse a sí mismo
+            );
+        if (usernameExists) {
+          _profileErrorMessage =
+              "Ese nombre de usuario ya está en uso. Por favor, elige otro.";
+          _isLoadingProfile = false;
+          notifyListeners();
+          return false; // Fallo debido a username duplicado
+        }
+      }
       Map<String, dynamic> dataToUpdate = {};
-      if (name != null) dataToUpdate['name'] = name;
-      if (location != null) dataToUpdate['location'] = location;
-      if (username != null) dataToUpdate['username'] = username;
+      if (name != null) dataToUpdate[nameField] = name;
+      if (location != null) dataToUpdate[locationField] = location;
+      if (username != null) dataToUpdate[usernameField] = username;
 
-      String? newPhotoUrl;
+      /* String? newPhotoUrl;
       if (newProfileImage != null) {
         newPhotoUrl = await _profileRepository.uploadProfilePicture(
           userId,
           newProfileImage,
         );
+
         newPhotoUrl != null
             ? dataToUpdate['photoUrl'] = newPhotoUrl
             : throw Exception("Fallo al subir la nueva foto de perfil");
-      }
+      } */
       if (dataToUpdate.isNotEmpty) {
         await _profileRepository.updateUserProfileData(userId, dataToUpdate);
       }
 
       // Recargar el perfil para reflejar los cambios
-      await fetchUserProfileAndGarments(userId, isRefresh: false);
-      _profileErrorMessage = null;
+      await fetchUserProfileAndGarments(userId, isRefresh: true);
+      return true; // Éxito
     } catch (e) {
       _profileErrorMessage = e.toString();
       print("ProfileProvider Error - updateUserProfile: $_profileErrorMessage");
+      return false;
     } finally {
       _isLoadingProfile = false;
       notifyListeners();

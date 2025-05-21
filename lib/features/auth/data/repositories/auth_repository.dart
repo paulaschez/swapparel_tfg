@@ -128,7 +128,7 @@ class AuthRepositoryImpl implements AuthRepository {
         if (docSnapshot.exists && docSnapshot.data() != null) {
           final userModel = UserModel.fromFirestore(docSnapshot);
 
-          /*  // Guardar datos en Shared Preferences mediante LocalStorageService
+         /*  // Guardar datos en Shared Preferences mediante LocalStorageService
           await _localStorageService.saveUserId(userModel.id);
           await _localStorageService.saveUserEmail(userModel.email);
           await _localStorageService.saveUserName(userModel.name);
@@ -238,8 +238,9 @@ class AuthRepositoryImpl implements AuthRepository {
         print("AuthRepo: Email '$email' NO existe en Firestore.");
         return false; // El email no existe
       }
+
     } catch (e) {
-      print("AuthRepo Error - checkIfEmailExists: $e");
+       print("AuthRepo Error - checkIfEmailExists: $e");
       return false;
     }
   }

@@ -3,6 +3,7 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:swapparel/app/config/constants/firestore_user_fields.dart';
 import '../../../auth/data/models/user_model.dart'; // Necesitarás UserModel
 import '../../../garment/data/models/garment_model.dart'; // Necesitarás GarmentModel
 import 'package:swapparel/app/config/constants/firestore_collections.dart';
@@ -14,6 +15,7 @@ abstract class ProfileRepository {
     DocumentSnapshot? lastVisible,
     int limit = 10,
   });
+   Future<bool> checkIfUsernameExists(String username, {String? currentUserId});
   Future<void> updateUserProfileData(
     String userId,
     Map<String, dynamic> dataToUpdate,
@@ -206,4 +208,23 @@ class ProfileRepositoryImpl implements ProfileRepository {
       return null; // Indica que la subida falló
     }
   }
+
+  @override
+Future<bool> checkIfUsernameExists(String username, {String? currentUserId}) async {
+  try {
+    final querySnapshot = await _firestore.collection(usersCollection).where(usernameField, isEqualTo: username.trim()).limit(1).get();
+
+    if (querySnapshot.docs.isEmpty) {
+      return false; // Username no existe
+    }
+    
+    if (currentUserId != null && querySnapshot.docs.first.id == currentUserId) {
+      return false; // Es el propio username del usuario
+    }
+    return true; // Username existe y pertenece a otro usuario
+  } catch (e) {
+    print("ProfileRepo Error - checkIfUsernameExists: $e");
+    return true; // Por seguridad, si hay error, asumir que podría existir
+  }
+}
 }

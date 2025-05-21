@@ -6,28 +6,56 @@ import '../../data/repositories/auth_repository.dart';
 class AuthProviderC extends ChangeNotifier {
   final AuthRepository _authRepository;
   UserModel? _currentUserModel;
+  String? _previousFirebaseUserId;
+  final ValueNotifier<bool> isAuthenticatedNotifier;
 
   AuthProviderC({required AuthRepository authRepository})
-    : _authRepository = authRepository {
+    : _authRepository = authRepository,
+      isAuthenticatedNotifier = ValueNotifier<bool>(
+        authRepository.currentUser != null,
+      ) {
+    // Escucha cambios en el estado de autenticación de Firebase
     _authRepository.authStateChanges.listen((User? firebaseUser) async {
-      if (firebaseUser != null) {
-        print("AuthProviderC: Auth state changed. User: ${firebaseUser.uid}");
-        await _fetchAndSetCurrentUserModel(firebaseUser.uid);
+      print(
+        "AuthProviderC Listen (authStateChanges): Received FirebaseUser: ${firebaseUser?.uid}",
+      );
+
+      bool newAuthStatus = firebaseUser != null;
+      // Actualiza el estado de autenticacion si ha cambiado
+      if (isAuthenticatedNotifier.value != newAuthStatus) {
+        isAuthenticatedNotifier.value = newAuthStatus;
+      }
+
+      if (newAuthStatus) {
+        // Usuario autenticado
+        if (_previousFirebaseUserId != firebaseUser.uid) {
+          print(
+            "AuthProviderC Listen: Fetching UserModel for ${firebaseUser.uid}",
+          );
+          await _fetchAndSetCurrentUserModel(firebaseUser.uid);
+          _previousFirebaseUserId = firebaseUser.uid;
+        }
       } else {
-        // Usuario ha cerrado sesión o no hay usuario
-        print("AuthProviderC: AuthStateChange - User logged out.");
+        // Usuario no autenticado
+        print("AuthProviderC Listen: User is null. Clearing UserModel.");
         if (_currentUserModel != null) {
-          // Solo notifica si realmente cambió
           _currentUserModel = null;
+          _previousFirebaseUserId = null;
           notifyListeners();
         }
       }
     });
+
+    // Si ya hay un usuario autenticado al iniciar, cargar su UserModel
+    if(isAuthenticatedNotifier.value && _authRepository.currentUserId != null) {
+      _previousFirebaseUserId = _authRepository.currentUserId;
+      _fetchAndSetCurrentUserModel(_authRepository.currentUserId!);
+    }
   }
 
-  User? get firebaseUser => _authRepository.currentUser;
+  // User? get firebaseUser => _authRepository.currentUser;
   String? get currentUserId => _authRepository.currentUserId;
-  bool get isAuthenticated => _authRepository.currentUser != null;
+  bool get isAuthenticated => isAuthenticatedNotifier.value;
   UserModel? get currentUserModel => _currentUserModel;
 
   // Estados internos
@@ -37,8 +65,6 @@ class AuthProviderC extends ChangeNotifier {
   // Getters para la UI
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-
-  // Metodos para llamar desde la UI
 
   // Metodo SignUp
   Future<bool> signUp({
@@ -94,15 +120,8 @@ class AuthProviderC extends ChangeNotifier {
         email,
         password,
       );
-      if (userModel != null) {
-        _currentUserModel = userModel;
-        success = true;
-      } else /* if(_authRepository.currentUser != null){
-        print("AuthProviderC: SignIn (Auth) success, UserModel will be fetched by authStateChanges.");
-        success = true; 
-      } */ {
-        if (_errorMessage == null) _setError("Fallo el inicio de sesión.");
-      }
+
+      success = userModel != null;
     } on FirebaseAuthException catch (e) {
       _setError(_mapFirebaseAuthExceptionMessage(e));
     } catch (e) {
@@ -132,8 +151,9 @@ class AuthProviderC extends ChangeNotifier {
 
   // Metodo SignOut
   Future<void> signOut() async {
+    _setLoading(true);
     await _authRepository.signOut();
-    _currentUserModel = null;
+    _setLoading(false);
   }
 
   // --- Métodos privados para actualizar estado y notificar ---
@@ -168,14 +188,43 @@ class AuthProviderC extends ChangeNotifier {
   }
 
   Future<void> _fetchAndSetCurrentUserModel(String userId) async {
+    UserModel? oldModel = _currentUserModel;
+
     try {
       _currentUserModel = await _authRepository.getCurrentUserModel();
-      print("AuthProviderC: UserModel fetched: ${_currentUserModel?.username}");
+      print(
+        "AuthProviderC: UserModel fetched/updated: ${_currentUserModel?.name}",
+      );
     } catch (e) {
       print("AuthProviderC: Error fetching UserModel: $e");
       _currentUserModel = null;
       _setError("No se pudieron cargar los datos del perfil del usuario.");
     }
-    notifyListeners();
+
+    if (_errorMessage != null &&
+        (oldModel?.id != _currentUserModel?.id ||
+            (oldModel == null && _currentUserModel != null) ||
+            (oldModel != null && _currentUserModel == null))) {
+      // Si el modelo cambio
+      notifyListeners();
+    } else if (_errorMessage == null &&
+        _currentUserModel != null &&
+        oldModel != null &&
+        oldModel.toJson().toString() !=
+            _currentUserModel!.toJson().toString()) {
+      // Si el id es el mismo pero otros campos cambiaron
+      notifyListeners();
+    }
+  }
+
+  Future<void> reloadCurrentUserModel() async {
+    if (currentUserId != null) {
+      print("AuthProviderC: Forcing reload of UserModel for $currentUserId");
+      _setLoading(true);
+      await _fetchAndSetCurrentUserModel(currentUserId!);
+      _setLoading(false);
+
+      print("AuthProviderC: Cannot reload UserModel, no current user.");
+    }
   }
 }

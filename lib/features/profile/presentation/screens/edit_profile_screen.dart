@@ -1,8 +1,6 @@
 // ignore_for_file: avoid_print
 
 import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
@@ -23,6 +21,7 @@ class EditProfileScreen extends StatefulWidget {
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
+// TODO: Arreglar que una vez cambiados los datos del usuario se vea
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late UserModel? _user;
   XFile? _pickedProfileImage;
@@ -115,14 +114,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (image != null) {
       setState(() {
         _pickedProfileImage = image;
-        if(kIsWeb){
+        if (kIsWeb) {
           image.readAsBytes().then((bytes) {
-              if (mounted) {
-                setState(() {
-                  _pickedProfileImageBytes = bytes;
-                });
-              }
-            });
+            if (mounted) {
+              setState(() {
+                _pickedProfileImageBytes = bytes;
+              });
+            }
+          });
         }
         print("imagen seleccionada: ${image.path}");
       });
@@ -221,7 +220,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               if (_formKey.currentState!.validate()) {
                 final authP = Provider.of<AuthProviderC>(
                   context,
@@ -235,20 +234,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 if (authP.currentUserId == null) {
                   return;
                 }
-
-                profileP.updateUserProfile(
+                // TODO: Manejar el estado de carga aquí (ej: profileP.setIsUpdating(true))
+                bool success = await profileP.updateUserProfile(
                   userId: authProvider.currentUserModel!.id,
                   name: _nameController.text,
                   username: _usernameController.text,
                   location: _locationController.text,
-                  newProfileImage: File(_pickedProfileImage!.path),
+                  newProfileImage:
+                      _pickedProfileImage != null
+                          ? File(_pickedProfileImage!.path)
+                          : null,
                 );
+
+                if (!mounted) return;
+                if (success) {
+                  await authP.reloadCurrentUserModel();
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Perfil actualizado con éxito"),
+                    ),
+                  );
+                  context
+                      .pop(); // Ahora pop, después de que AuthProviderC (idealmente) tenga los datos frescos
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        profileP.profileErrorMessage ??
+                            "Error al actualizar el perfil",
+                      ),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
               }
 
               print(
                 "Guardar cambios: Nombre: ${_nameController.text}, User: ${_usernameController.text}",
               );
-              context.pop(); // Vuelve a la pantalla anterior después de guardar
+              
             },
             child: Text(
               "Guardar",
@@ -277,8 +302,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     CircleAvatar(
                       radius: avatarRadius,
                       backgroundColor: Colors.grey[300],
-                      backgroundImage: kIsWeb && _pickedProfileImageBytes != null ? MemoryImage(_pickedProfileImageBytes!) :
-                          _pickedProfileImage != null
+                      backgroundImage:
+                          kIsWeb && _pickedProfileImageBytes != null
+                              ? MemoryImage(_pickedProfileImageBytes!)
+                              : _pickedProfileImage != null
                               ? FileImage(File(_pickedProfileImage!.path))
                               : (placeholderPhotoUrl.isNotEmpty
                                   ? CachedNetworkImageProvider(

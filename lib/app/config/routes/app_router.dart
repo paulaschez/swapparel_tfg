@@ -4,13 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swapparel/features/garment/presentation/screens/add_garment_screen.dart';
 
-import '../../../features/auth/presentation/provider/auth_provider.dart'; 
+import '../../../features/auth/presentation/provider/auth_provider.dart';
 import '../../../features/auth/presentation/screens/login_screen.dart';
 import '../../../features/auth/presentation/screens/register_screen.dart';
 import '../../../features/auth/presentation/screens/forgot_password_screen.dart';
-import '../../presentation/main_app_screen.dart'; // Tu MainAppScreen
-//import '../../../features/feed/presentation/screens/feed_screen.dart';
-//import '../../../features/profile/presentation/screens/profile_screen.dart';
+import '../../presentation/main_app_screen.dart';
 import '../../../features/profile/presentation/screens/edit_profile_screen.dart';
 // TODO: Importar el resto de pantallas (cuando las tenga)
 
@@ -20,8 +18,8 @@ class AppRouter {
   final AuthProviderC authProvider;
   AppRouter({required this.authProvider});
   late final GoRouter router = GoRouter(
-    refreshListenable: authProvider,
-    initialLocation: AppRoutes.home,
+    refreshListenable: authProvider.isAuthenticatedNotifier,
+    initialLocation: AppRoutes.splash,
     debugLogDiagnostics: true,
 
     redirect: (context, state) {
@@ -57,6 +55,13 @@ class AppRouter {
     },
     routes: <RouteBase>[
       GoRoute(
+        path: '/',
+        redirect: (context, state) {
+          final isAuthenticated = authProvider.isAuthenticated;
+          return isAuthenticated ? AppRoutes.home : AppRoutes.login;
+        },
+      ),
+      GoRoute(
         path: AppRoutes.login,
         name: 'login',
         builder: (context, state) => const SignIn(),
@@ -81,7 +86,7 @@ class AppRouter {
         name: 'editProfile',
         builder: (context, state) => const EditProfileScreen(),
       ),
-       GoRoute(
+      GoRoute(
         path: AppRoutes.addGarment,
         name: 'addGarment',
         builder: (context, state) => const AddGarmentScreen(),
