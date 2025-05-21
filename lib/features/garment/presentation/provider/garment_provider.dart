@@ -19,6 +19,8 @@ class GarmentProvider extends ChangeNotifier {
        _garmentRepository = garmentRepository,
        _uuid = const Uuid();
 
+  // TODO: añadir updateExistingGarment()
+
   bool _isUploading = false;
   String? _uploadErrorMessage;
 

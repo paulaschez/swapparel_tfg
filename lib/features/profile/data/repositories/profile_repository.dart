@@ -3,7 +3,10 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:swapparel/app/config/constants/firestore_user_fields.dart';
+import 'package:uuid/uuid.dart';
 import '../../../auth/data/models/user_model.dart'; // Necesitarás UserModel
 import '../../../garment/data/models/garment_model.dart'; // Necesitarás GarmentModel
 import 'package:swapparel/app/config/constants/firestore_collections.dart';
@@ -15,12 +18,12 @@ abstract class ProfileRepository {
     DocumentSnapshot? lastVisible,
     int limit = 10,
   });
-   Future<bool> checkIfUsernameExists(String username, {String? currentUserId});
+  Future<bool> checkIfUsernameExists(String username, {String? currentUserId});
   Future<void> updateUserProfileData(
     String userId,
     Map<String, dynamic> dataToUpdate,
   );
-  Future<String?> uploadProfilePicture(String userId, File imageFile);
+  Future<String?> uploadProfilePicture(String userId, XFile imageXFile);
 
   // --- Interacciones (Likes/Dislikes del Usuario  ---
   Future<void> addLikedItemToMyProfile({
@@ -30,7 +33,7 @@ abstract class ProfileRepository {
   Future<void> addDislikedItemToMyProfile({
     required String currentUserId,
     required String dislikedGarmentId,
-  }); 
+  });
 
   // --- Obtención de Interacciones (Para cargar en FeedProvider) ---
   Future<Set<String>> getMyLikedItemIds(String currentUserId);
@@ -42,12 +45,14 @@ abstract class ProfileRepository {
 class ProfileRepositoryImpl implements ProfileRepository {
   final FirebaseFirestore _firestore;
   final FirebaseStorage _storage;
+  final Uuid _uuid;
 
   ProfileRepositoryImpl({
     required FirebaseFirestore firestore,
     required FirebaseStorage storage,
   }) : _firestore = firestore,
-       _storage = storage;
+       _storage = storage,
+       _uuid = const Uuid();
 
   @override
   Future<UserModel?> getUserProfile(String userId) async {
@@ -100,7 +105,6 @@ class ProfileRepositoryImpl implements ProfileRepository {
     Map<String, dynamic> dataToUpdate,
   ) async {
     try {
-     
       await _firestore
           .collection(usersCollection)
           .doc(userId)
@@ -122,9 +126,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
           .doc(currentUserId)
           .collection(likedGarmentsCollection) // Nombre de la subcolección
           .doc(likedGarmentId)
-          .set({
-            'timestamp': FieldValue.serverTimestamp(),
-          }); 
+          .set({'timestamp': FieldValue.serverTimestamp()});
     } catch (e) {
       print("Error adding liked item to profile: $e");
     }
@@ -180,24 +182,36 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<String?> uploadProfilePicture(String userId, File imageFile) async {
+  Future<String?> uploadProfilePicture(String userId, XFile imageXFile) async {
     try {
       // 1. Crear una referencia en Firebase Storage mediante el userId y un timestamp
       final String fileName =
-          'profile_pictures/$userId/profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          'profile_pictures/$userId/profile_${_uuid.v4()}${imageXFile.mimeType?.replaceAll("image/", ".") ?? ".jpg"}';
       final Reference storageRef = _storage.ref().child(fileName);
 
       // 2. Subir el archivo
-      final UploadTask uploadTask = storageRef.putFile(imageFile);
+      final UploadTask uploadTask;
+      if (kIsWeb) {
+        final Uint8List bytes = await imageXFile.readAsBytes();
+        uploadTask = storageRef.putData(
+          bytes,
+          SettableMetadata(contentType: imageXFile.mimeType ?? 'image/jpeg'),
+        );
+      } else {
+        uploadTask = storageRef.putFile(
+          File(imageXFile.path),
+          SettableMetadata(contentType: imageXFile.mimeType ?? 'image/jpeg'),
+        );
+      }
 
       // 3. Esperar a que la subida se complete
-      final TaskSnapshot snapshot = await uploadTask.whenComplete(() => {});
+      final TaskSnapshot snapshot = await uploadTask;
 
       // 4. Obtener la URL de descarga
       final String downloadUrl = await snapshot.ref.getDownloadURL();
 
       // Actualizar photoUrl en el doc del usuario en Firestore
-      await updateUserProfileData(userId, {'photoUrl': downloadUrl});
+      //await updateUserProfileData(userId, {'photoUrl': downloadUrl});
       return downloadUrl;
     } catch (e) {
       print("Error uploading profile picture: $e");
@@ -210,21 +224,30 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-Future<bool> checkIfUsernameExists(String username, {String? currentUserId}) async {
-  try {
-    final querySnapshot = await _firestore.collection(usersCollection).where(usernameField, isEqualTo: username.trim()).limit(1).get();
+  Future<bool> checkIfUsernameExists(
+    String username, {
+    String? currentUserId,
+  }) async {
+    try {
+      final querySnapshot =
+          await _firestore
+              .collection(usersCollection)
+              .where(usernameField, isEqualTo: username.trim())
+              .limit(1)
+              .get();
 
-    if (querySnapshot.docs.isEmpty) {
-      return false; // Username no existe
+      if (querySnapshot.docs.isEmpty) {
+        return false; // Username no existe
+      }
+
+      if (currentUserId != null &&
+          querySnapshot.docs.first.id == currentUserId) {
+        return false; // Es el propio username del usuario
+      }
+      return true; // Username existe y pertenece a otro usuario
+    } catch (e) {
+      print("ProfileRepo Error - checkIfUsernameExists: $e");
+      return true; // Por seguridad, si hay error, asumir que podría existir
     }
-    
-    if (currentUserId != null && querySnapshot.docs.first.id == currentUserId) {
-      return false; // Es el propio username del usuario
-    }
-    return true; // Username existe y pertenece a otro usuario
-  } catch (e) {
-    print("ProfileRepo Error - checkIfUsernameExists: $e");
-    return true; // Por seguridad, si hay error, asumir que podría existir
   }
-}
 }

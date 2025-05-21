@@ -225,8 +225,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         backgroundColor: Colors.grey[300],
                         backgroundImage:
                             (photoUrl.isNotEmpty)
+                            //TODO: desplegar a firebase hosting??
                                 ? CachedNetworkImageProvider(photoUrl)
                                 : null,
+                        onBackgroundImageError: (exception, stackTrace) {
+                          print("Error cargando CachedNetworkImageProvider: $exception");
+                        },
                         child:
                             photoUrl.isEmpty
                                 ? Icon(
@@ -344,10 +348,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                           context,
                                                           baseSize: 18,
                                                         ),
-                                                    color: AppColors.primaryGreen,
+                                                    color:
+                                                        AppColors.primaryGreen,
                                                   ),
                                                 ),
-                                        
+
                                                 Text(
                                                   isMyProfile
                                                       ? "¡Sube alguna!"
@@ -358,7 +363,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                           context,
                                                           baseSize: 18,
                                                         ),
-                                                    color: AppColors.primaryGreen,
+                                                    color:
+                                                        AppColors.primaryGreen,
                                                     fontWeight: FontWeight.w600,
                                                   ),
                                                 ),
@@ -465,8 +471,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           itemBuilder: (context, index) {
             final garment = garments[index];
             return ProfileGarmentCard(
-              polaroidWidth: polaroidWidth,
-              polaroidHeight: polaroidHeight,
               garment: garment,
             );
           },
@@ -474,6 +478,4 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
     );
   }
-
-  
 }

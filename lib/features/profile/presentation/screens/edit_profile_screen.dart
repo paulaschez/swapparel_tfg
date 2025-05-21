@@ -234,16 +234,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 if (authP.currentUserId == null) {
                   return;
                 }
-                // TODO: Manejar el estado de carga aquí (ej: profileP.setIsUpdating(true))
+                // TODO: Manejar el estado de carga aquí
                 bool success = await profileP.updateUserProfile(
                   userId: authProvider.currentUserModel!.id,
                   name: _nameController.text,
                   username: _usernameController.text,
                   location: _locationController.text,
                   newProfileImage:
-                      _pickedProfileImage != null
-                          ? File(_pickedProfileImage!.path)
-                          : null,
+                      _pickedProfileImage,
                 );
 
                 if (!mounted) return;

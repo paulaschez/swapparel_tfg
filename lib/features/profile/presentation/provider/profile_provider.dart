@@ -1,4 +1,5 @@
 import 'dart:io'; // Para File
+import 'package:image_picker/image_picker.dart';
 import 'package:swapparel/app/config/constants/firestore_collections.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Para DocumentSnapshot
@@ -115,7 +116,7 @@ class ProfileProvider extends ChangeNotifier {
     String? name,
     String? username,
     String? location,
-    File? newProfileImage,
+    XFile? newProfileImage,
     String? currentUsername,
   }) async {
     _isLoadingProfile = true;
@@ -143,7 +144,7 @@ class ProfileProvider extends ChangeNotifier {
       if (location != null) dataToUpdate[locationField] = location;
       if (username != null) dataToUpdate[usernameField] = username;
 
-      /* String? newPhotoUrl;
+      String? newPhotoUrl;
       if (newProfileImage != null) {
         newPhotoUrl = await _profileRepository.uploadProfilePicture(
           userId,
@@ -153,7 +154,7 @@ class ProfileProvider extends ChangeNotifier {
         newPhotoUrl != null
             ? dataToUpdate['photoUrl'] = newPhotoUrl
             : throw Exception("Fallo al subir la nueva foto de perfil");
-      } */
+      }
       if (dataToUpdate.isNotEmpty) {
         await _profileRepository.updateUserProfileData(userId, dataToUpdate);
       }
