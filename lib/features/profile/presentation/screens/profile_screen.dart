@@ -128,7 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         leading:
-            isMyProfile
+            !isMyProfile
                 ? IconButton(
                   icon: Icon(
                     Icons.arrow_back_ios_new,
@@ -228,9 +228,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             //TODO: desplegar a firebase hosting??
                                 ? CachedNetworkImageProvider(photoUrl)
                                 : null,
-                        onBackgroundImageError: (exception, stackTrace) {
+                        onBackgroundImageError: photoUrl.isNotEmpty ? (exception, stackTrace) {
                           print("Error cargando CachedNetworkImageProvider: $exception");
-                        },
+                        }: null,
                         child:
                             photoUrl.isEmpty
                                 ? Icon(

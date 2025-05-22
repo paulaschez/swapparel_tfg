@@ -1,4 +1,3 @@
-import 'dart:io'; // Para File
 import 'package:image_picker/image_picker.dart';
 import 'package:swapparel/app/config/constants/firestore_collections.dart';
 import 'package:flutter/foundation.dart';

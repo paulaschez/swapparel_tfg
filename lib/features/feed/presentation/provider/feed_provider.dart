@@ -143,7 +143,7 @@ class FeedProvider extends ChangeNotifier {
       _likedGarmentIds.add(garment.id);
 
       // 4.  Persistir este cambio en _likedGarmentIds en Firestore para el usuario
-      await _profileRepository.addLikedItemToMyProfile(
+      await _profileRepository.addLikedGarmentToMyProfile(
         currentUserId: _currentUserId,
         likedGarmentId: garment.id,
       );
@@ -179,7 +179,7 @@ class FeedProvider extends ChangeNotifier {
       _garments.removeWhere((g) => g.id == garment.id);
 
       // 2. Registrar el dislike en el repositorio del perfil
-      await _profileRepository.addDislikedItemToMyProfile(
+      await _profileRepository.addDislikedGarmentToMyProfile(
         currentUserId: _currentUserId,
         dislikedGarmentId: garment.id,
       );

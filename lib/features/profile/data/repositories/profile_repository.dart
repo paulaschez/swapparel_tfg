@@ -26,18 +26,24 @@ abstract class ProfileRepository {
   Future<String?> uploadProfilePicture(String userId, XFile imageXFile);
 
   // --- Interacciones (Likes/Dislikes del Usuario  ---
-  Future<void> addLikedItemToMyProfile({
+  Future<void> addLikedGarmentToMyProfile({
     required String currentUserId,
     required String likedGarmentId,
   });
-  Future<void> addDislikedItemToMyProfile({
+  Future<void> addDislikedGarmentToMyProfile({
     required String currentUserId,
     required String dislikedGarmentId,
   });
 
+  Future<bool> haveILikedThisGarment(String currentUserId, String garmenId);
+  Future<void> removeLikedGarmentFromMyProfile(
+    String currentUserId,
+    String likedGarmentId,
+  );
+
   // --- Obtención de Interacciones (Para cargar en FeedProvider) ---
-  Future<Set<String>> getMyLikedItemIds(String currentUserId);
-  Future<Set<String>> getMyDislikedItemIds(String currentUserId);
+  Future<Set<String>> getMyLikedGarmentIds(String currentUserId);
+  Future<Set<String>> getMyDislikedGarmentIds(String currentUserId);
 
   // Future<int> getStats(String userId);
 }
@@ -116,7 +122,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<void> addLikedItemToMyProfile({
+  Future<void> addLikedGarmentToMyProfile({
     required String currentUserId,
     required String likedGarmentId,
   }) async {
@@ -128,12 +134,12 @@ class ProfileRepositoryImpl implements ProfileRepository {
           .doc(likedGarmentId)
           .set({'timestamp': FieldValue.serverTimestamp()});
     } catch (e) {
-      print("Error adding liked item to profile: $e");
+      print("Error adding liked Garment to profile: $e");
     }
   }
 
   @override
-  Future<void> addDislikedItemToMyProfile({
+  Future<void> addDislikedGarmentToMyProfile({
     required String currentUserId,
     required String dislikedGarmentId,
   }) async {
@@ -145,12 +151,12 @@ class ProfileRepositoryImpl implements ProfileRepository {
           .doc(dislikedGarmentId)
           .set({'timestamp': FieldValue.serverTimestamp()});
     } catch (e) {
-      print("Error adding disliked item to profile: $e");
+      print("Error adding disliked Garment to profile: $e");
     }
   }
 
   @override
-  Future<Set<String>> getMyLikedItemIds(String currentUserId) async {
+  Future<Set<String>> getMyLikedGarmentIds(String currentUserId) async {
     try {
       final snapshot =
           await _firestore
@@ -160,13 +166,13 @@ class ProfileRepositoryImpl implements ProfileRepository {
               .get();
       return snapshot.docs.map((doc) => doc.id).toSet();
     } catch (e) {
-      print("Error fetching liked item IDs: $e");
+      print("Error fetching liked Garment IDs: $e");
       return {}; // Devuelve set vacío en caso de error
     }
   }
 
   @override
-  Future<Set<String>> getMyDislikedItemIds(String currentUserId) async {
+  Future<Set<String>> getMyDislikedGarmentIds(String currentUserId) async {
     try {
       final snapshot =
           await _firestore
@@ -176,8 +182,58 @@ class ProfileRepositoryImpl implements ProfileRepository {
               .get();
       return snapshot.docs.map((doc) => doc.id).toSet();
     } catch (e) {
-      print("Error fetching disliked item IDs: $e");
+      print("Error fetching disliked Garment IDs: $e");
       return {};
+    }
+  }
+
+  @override
+  Future<bool> haveILikedThisGarment(
+    String currentUserId,
+    String garmentId,
+  ) async {
+    try {
+      final likedDocSnapshot =
+          await _firestore
+              .collection(usersCollection)
+              .doc(currentUserId)
+              .collection(likedGarmentsCollection)
+              .doc(garmentId)
+              .get();
+      // Si el documento existe, significa que el usuario le ha dado like a esta prenda.
+      print(
+        "ProfileRepo: haveILikedThisGarment - User: $currentUserId, Garment: $garmentId, Exists: ${likedDocSnapshot.exists}",
+      );
+      return likedDocSnapshot.exists;
+    } catch (e) {
+      print(
+        "ProfileRepo Error - haveILikedThisGarment for User: $currentUserId, Garment: $garmentId. Error: $e",
+      );
+      // En caso de error, es más seguro asumir que no le ha dado like
+      return false;
+    }
+  }
+
+  @override
+  Future<void> removeLikedGarmentFromMyProfile(
+    String currentUserId,
+    String likedGarmentId,
+  ) async {
+    try {
+      await _firestore
+          .collection(usersCollection)
+          .doc(currentUserId)
+          .collection(likedGarmentsCollection)
+          .doc(likedGarmentId)
+          .delete();
+
+      print(
+        "ProfileRepo: removeLikedGarmentFromMyProfile - User: $currentUserId has disliked Garment: $likedGarmentId",
+      );
+    } catch (e) {
+      print(
+        "ProfileRepo Error - removeLikedGarmentFromMyProfile for  User: $currentUserId and  Garment: $likedGarmentId. Error $e",
+      );
     }
   }
 

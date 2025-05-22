@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../garment/data/models/garment_model.dart';
 import 'package:swapparel/app/config/constants/firestore_collections.dart';
 
-
 abstract class FeedRepository {
   // Obtiene un lote de prendas para el feed, excluyendo las del usuario actual.
   // Usa 'lastVisibleDocument' para paginación.
@@ -16,17 +15,23 @@ abstract class FeedRepository {
 
   // Registra que a un usuario le gustó una prenda en la lista global de likes.
   Future<void> likeGarment({
-    required String likerUserId,    // Quién da el like
+    required String likerUserId, // Quién da el like
     required String likedGarmentId, // Qué prenda recibe el like
-    required String likedGarmentOwnerId, // Dueño de la prenda que recibe el like
+    required String
+    likedGarmentOwnerId, // Dueño de la prenda que recibe el like
   });
 
+  Future<void> removeLikeFromGlobalCollection({
+    required String likerUserId,
+    required String likedGarmentId,
+  });
 }
 
 class FeedRepositoryImpl implements FeedRepository {
   final FirebaseFirestore _firestore;
 
-  FeedRepositoryImpl({required FirebaseFirestore firestore}) : _firestore = firestore;
+  FeedRepositoryImpl({required FirebaseFirestore firestore})
+    : _firestore = firestore;
 
   @override
   Future<List<GarmentModel>> getGarmentsForFeed({
@@ -37,9 +42,15 @@ class FeedRepositoryImpl implements FeedRepository {
     try {
       Query query = _firestore
           .collection(garmentsCollection)
-          .where('ownerId', isNotEqualTo: currentUserId) // No mostrar las prendas propias del usuario
+          .where(
+            'ownerId',
+            isNotEqualTo: currentUserId,
+          ) // No mostrar las prendas propias del usuario
           .orderBy('ownerId')
-          .orderBy('createdAt', descending: true); // Ordenar por más recientes primero
+          .orderBy(
+            'createdAt',
+            descending: true,
+          ); // Ordenar por más recientes primero
 
       if (lastVisibleDocument != null) {
         query = query.startAfterDocument(lastVisibleDocument);
@@ -47,9 +58,14 @@ class FeedRepositoryImpl implements FeedRepository {
 
       final querySnapshot = await query.limit(limit).get();
 
-      final garments = querySnapshot.docs
-          .map((doc) => GarmentModel.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
-          .toList();
+      final garments =
+          querySnapshot.docs
+              .map(
+                (doc) => GarmentModel.fromFirestore(
+                  doc as DocumentSnapshot<Map<String, dynamic>>,
+                ),
+              )
+              .toList();
       return garments;
     } catch (e) {
       print("Error fetching garments for feed: $e");
@@ -71,7 +87,7 @@ class FeedRepositoryImpl implements FeedRepository {
         'timestamp': FieldValue.serverTimestamp(),
       };
       // Crear un ID único para el like autogenerado por firestore
-      await _firestore.collection('likes').add(likeData);
+      await _firestore.collection(likesCollection).add(likeData);
 
       print("Garment $likedGarmentId liked by $likerUserId");
     } catch (e) {
@@ -80,4 +96,38 @@ class FeedRepositoryImpl implements FeedRepository {
     }
   }
 
+  @override
+  Future<void> removeLikeFromGlobalCollection({
+    required String likerUserId,
+    required String likedGarmentId,
+  }) async {
+    try {
+      final QuerySnapshot querySnapshot =
+          await _firestore
+              .collection(likesCollection)
+              .where('likerUserId', isEqualTo: likerUserId)
+              .where('likedGarmentId', isEqualTo: likedGarmentId)
+              .get();
+
+      // Verificar si se encontró un documento
+      if (querySnapshot.docs.isNotEmpty) {
+        final String docIdToDelete = querySnapshot.docs.first.id;
+        await _firestore
+            .collection(likesCollection)
+            .doc(docIdToDelete)
+            .delete();
+        print(
+          "FeedRepo: Like eliminado de la colección global 'likes'. Doc ID: $docIdToDelete",
+        );
+      } else {
+        // No se encontró un like que coincida.
+        print(
+          "FeedRepo Warning: No se encontró un 'like' para eliminar con likerUserId: $likerUserId, likedGarmentId: $likedGarmentId",
+        );
+      }
+    } catch (e) {
+      print("FeedRepo Error - removeLikeFromGlobalCollection: $e");
+      throw Exception("Failed to remove like from global collection.");
+    }
+  }
 }

@@ -5,6 +5,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:swapparel/core/utils/image_picker_utils.dart';
 import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
+/* import 'package:swapparel/features/garment/data/models/garment_category.dart';
+import 'package:swapparel/features/garment/data/models/garment_condition.dart';
+import 'package:swapparel/features/garment/data/models/garment_size.dart'; */
 import 'package:swapparel/features/garment/presentation/provider/garment_provider.dart';
 import 'package:swapparel/features/profile/presentation/provider/profile_provider.dart';
 import '../../../../app/config/theme/app_theme.dart';
@@ -35,7 +38,6 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
   final List<XFile> _selectedImages = [];
   final List<Uint8List?> _selectedImageBytesWeb = [];
 
-  // TODO: Definir Enums para opciones de Dropdown
   final List<String> _categories = [
     'Camisa',
     'Pantalón',
@@ -228,7 +230,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
-          horizontal: horizontalPadding,
+          horizontal: horizontalPadding*1.5,
           vertical: verticalSpacing * 1.5,
         ),
         child: Form(
@@ -306,7 +308,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
                             if (index >= _selectedImages.length) {
                               return const SizedBox.shrink(); // Seguridad
                             }
-                            final XFile = _selectedImages[index];
+                            final xFile = _selectedImages[index];
 
                             // Miniatura de imagen seleccionada
                             return Padding(
@@ -344,7 +346,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
                                               : (!kIsWeb
                                                   ? DecorationImage(
                                                     image: FileImage(
-                                                      File(XFile.path),
+                                                      File(xFile.path),
                                                     ),
                                                     fit: BoxFit.cover,
                                                   )
@@ -370,7 +372,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
                                                         _selectedImageBytesWeb[index] ==
                                                             null) &&
                                                     !(!kIsWeb)) ||
-                                                (!kIsWeb && XFile.path.isEmpty)
+                                                (!kIsWeb && xFile.path.isEmpty)
                                             ? Center(
                                               child: Icon(
                                                 Icons.hourglass_empty,
@@ -531,6 +533,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
       ),
     );
   }
+  //TODO: Añadir progreso de carga al guardar + manejo de errores
 
   // --- Widget Helper para DropdownButtonFormField ---
   Widget _buildDropdownField({
@@ -544,6 +547,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
     return Padding(
       padding: EdgeInsets.symmetric(
         vertical: ResponsiveUtils.verticalSpacing(context) * 0.7,
+        //horizontal: ResponsiveUtils.horizontalPadding(context)
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -561,9 +565,11 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
           ),
           SizedBox(height: ResponsiveUtils.verticalSpacing(context) * 0.4),
           DropdownButtonFormField<String>(
+            dropdownColor: AppColors.lightGreen,
+            borderRadius: BorderRadius.circular(8),
             decoration: InputDecoration(hintText: hint, isDense: true),
             value: value,
-            isExpanded: true,
+            menuMaxHeight: 200,
             items:
                 items.map((String itemValue) {
                   return DropdownMenuItem<String>(
@@ -576,6 +582,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
                           baseSize: 14,
                           maxSize: 16,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   );

@@ -22,7 +22,7 @@ class ProfileGarmentCard extends StatelessWidget {
       padding: EdgeInsets.all(8),
 
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
