@@ -5,6 +5,7 @@ import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart
 import 'package:swapparel/features/feed/data/repositories/feed_repository.dart';
 import 'package:swapparel/features/feed/presentation/provider/feed_provider.dart';
 import 'package:swapparel/features/garment/data/repositories/garment_repository.dart';
+import 'package:swapparel/features/garment/presentation/provider/garment_detail_provider.dart';
 import 'package:swapparel/features/garment/presentation/provider/garment_provider.dart';
 import 'package:swapparel/features/profile/data/repositories/profile_repository.dart';
 import 'package:swapparel/features/profile/presentation/provider/profile_provider.dart';
@@ -141,6 +142,15 @@ class MyAppInitializer extends StatelessWidget {
             return previousGarmentProvider;
           },
         ),
+        ChangeNotifierProvider<GarmentDetailProvider>(
+          create:
+              (context) => GarmentDetailProvider(
+                garmentRepository: context.read<GarmentRepository>(),
+                profileRepository: context.read<ProfileRepository>(),
+                feedRepository: context.read<FeedRepository>(),
+                authProvider: context.read<AuthProviderC>(),
+              ),
+        ),
       ],
       child: const MyApp(),
     );
@@ -168,7 +178,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'EcoSwap',
+      title: 'Swapparel',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: _appRouter.router,

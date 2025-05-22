@@ -225,12 +225,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         backgroundColor: Colors.grey[300],
                         backgroundImage:
                             (photoUrl.isNotEmpty)
-                            //TODO: desplegar a firebase hosting??
+                                //TODO: desplegar a firebase hosting??
                                 ? CachedNetworkImageProvider(photoUrl)
                                 : null,
-                        onBackgroundImageError: photoUrl.isNotEmpty ? (exception, stackTrace) {
-                          print("Error cargando CachedNetworkImageProvider: $exception");
-                        }: null,
+                        onBackgroundImageError:
+                            photoUrl.isNotEmpty
+                                ? (exception, stackTrace) {
+                                  print(
+                                    "Error cargando CachedNetworkImageProvider: $exception",
+                                  );
+                                }
+                                : null,
                         child:
                             photoUrl.isEmpty
                                 ? Icon(
@@ -470,8 +475,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           itemCount: garments.length,
           itemBuilder: (context, index) {
             final garment = garments[index];
-            return ProfileGarmentCard(
-              garment: garment,
+            return GestureDetector(
+              onTap: () {
+                print("Navegando a detalle de prenda ID: ${garment.id}");
+                context.pushNamed(
+                  'garmentDetail',
+                  pathParameters: {'garmentId': garment.id},
+                );
+              },
+              child: ProfileGarmentCard(garment: garment),
             );
           },
         );

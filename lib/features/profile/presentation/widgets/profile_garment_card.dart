@@ -20,7 +20,6 @@ class ProfileGarmentCard extends StatelessWidget {
     }
     return Container(
       padding: EdgeInsets.all(8),
-
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [

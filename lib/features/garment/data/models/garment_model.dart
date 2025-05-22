@@ -37,7 +37,7 @@ class GarmentModel {
     this.color,
     this.material,
     required this.createdAt,
-    required this.isAvailable,
+    this.isAvailable = true,
   });
 
   // Factory para crear desde un DocumentSnapshot de Firestore

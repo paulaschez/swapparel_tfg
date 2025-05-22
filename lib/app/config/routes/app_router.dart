@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swapparel/features/garment/presentation/screens/add_garment_screen.dart';
+import 'package:swapparel/features/garment/presentation/screens/garment_detail_screen.dart';
 
 import '../../../features/auth/presentation/provider/auth_provider.dart';
 import '../../../features/auth/presentation/screens/login_screen.dart';
@@ -19,7 +20,7 @@ class AppRouter {
   AppRouter({required this.authProvider});
   late final GoRouter router = GoRouter(
     refreshListenable: authProvider.isAuthenticatedNotifier,
-    initialLocation: AppRoutes.splash,
+    initialLocation: AppRoutes.garmentDetail,
     debugLogDiagnostics: true,
 
     redirect: (context, state) {
@@ -39,7 +40,7 @@ class AppRouter {
         print(
           "GoRouter Redirect: Not authenticated, redirecting to ${AppRoutes.login}",
         );
-        return AppRoutes.login;
+        return AppRoutes.garmentDetail;
       }
 
       // Si el usuario si esta autenticado y esta en una ruta de autenticacion
@@ -47,7 +48,7 @@ class AppRouter {
         print(
           "GoRouter Redirect: Authenticated but on auth route, redirecting to ${AppRoutes.home}",
         );
-        return AppRoutes.home;
+        return AppRoutes.garmentDetail;
       }
 
       // En cualquier otro caso, no redirigir
@@ -90,6 +91,14 @@ class AppRouter {
         path: AppRoutes.addGarment,
         name: 'addGarment',
         builder: (context, state) => const AddGarmentScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.garmentDetail,
+        name: 'garmentDetail',
+        builder: (context, state) {
+          //final String garmentId = state.pathParameters['garmentId']!;
+          return GarmentDetailScreen(garmentId: 'garmentId');
+        },
       ),
     ],
     errorBuilder:
