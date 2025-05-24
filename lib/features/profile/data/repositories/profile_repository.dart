@@ -7,8 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:swapparel/app/config/constants/firestore_user_fields.dart';
 import 'package:uuid/uuid.dart';
-import '../../../auth/data/models/user_model.dart'; // Necesitarás UserModel
-import '../../../garment/data/models/garment_model.dart'; // Necesitarás GarmentModel
+import '../../../auth/data/models/user_model.dart'; 
+import '../../../garment/data/models/garment_model.dart'; 
 import 'package:swapparel/app/config/constants/firestore_collections.dart';
 
 abstract class ProfileRepository {

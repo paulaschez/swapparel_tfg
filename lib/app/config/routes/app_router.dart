@@ -1,9 +1,9 @@
-// ignore_for_file: avoid_print
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:swapparel/features/garment/presentation/screens/add_garment_screen.dart';
+import 'package:swapparel/features/garment/data/models/garment_model.dart';
+import 'package:swapparel/features/garment/presentation/screens/add_edit_garment_screen.dart';
 import 'package:swapparel/features/garment/presentation/screens/garment_detail_screen.dart';
+import 'package:swapparel/features/profile/presentation/screens/profile_screen.dart';
 
 import '../../../features/auth/presentation/provider/auth_provider.dart';
 import '../../../features/auth/presentation/screens/login_screen.dart';
@@ -20,7 +20,7 @@ class AppRouter {
   AppRouter({required this.authProvider});
   late final GoRouter router = GoRouter(
     refreshListenable: authProvider.isAuthenticatedNotifier,
-    initialLocation: AppRoutes.garmentDetail,
+    initialLocation: AppRoutes.home,
     debugLogDiagnostics: true,
 
     redirect: (context, state) {
@@ -40,7 +40,7 @@ class AppRouter {
         print(
           "GoRouter Redirect: Not authenticated, redirecting to ${AppRoutes.login}",
         );
-        return AppRoutes.garmentDetail;
+        return AppRoutes.login;
       }
 
       // Si el usuario si esta autenticado y esta en una ruta de autenticacion
@@ -48,7 +48,7 @@ class AppRouter {
         print(
           "GoRouter Redirect: Authenticated but on auth route, redirecting to ${AppRoutes.home}",
         );
-        return AppRoutes.garmentDetail;
+        return AppRoutes.home;
       }
 
       // En cualquier otro caso, no redirigir
@@ -90,14 +90,34 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.addGarment,
         name: 'addGarment',
-        builder: (context, state) => const AddGarmentScreen(),
+        builder: (context, state) => AddEditGarmentScreen(),
       ),
       GoRoute(
         path: AppRoutes.garmentDetail,
         name: 'garmentDetail',
         builder: (context, state) {
-          //final String garmentId = state.pathParameters['garmentId']!;
-          return GarmentDetailScreen(garmentId: 'garmentId');
+          final String garmentId = state.pathParameters['garmentId']!;
+          return GarmentDetailScreen(garmentId: garmentId);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.profile,
+        name: 'profile',
+        builder: (context, state) {
+          final String userId = state.pathParameters['userId']!;
+          return ProfileScreen(
+            viewingUserId: userId,
+            isCurrentUserProfile: false,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.editGarment,
+        name: 'editGarment',
+        builder: (context, state) {
+          final String garmentId = state.pathParameters['garmentId']!;
+         
+          return AddEditGarmentScreen(garmentIdForEditing: garmentId);
         },
       ),
     ],

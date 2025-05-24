@@ -23,13 +23,11 @@ class GarmentDetailProvider extends ChangeNotifier {
        _feedRepository = feedRepository;
 
   GarmentModel? _garment;
-  //UserModel? _ownerProfile;
   bool _isLoading = false;
   String? _errorMessage;
   bool _isLikedByCurrentUser = false;
 
   GarmentModel? get garment => _garment;
-  //UserModel? get ownerProfile => _ownerProfile;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isLikedByCurrentUser => _isLikedByCurrentUser;
@@ -53,21 +51,15 @@ class GarmentDetailProvider extends ChangeNotifier {
 
     try {
       _garment = await _garmentRepository.getGarmentById(garmentId);
-      /* if (_garment != null) {
-        // Obtenemos el perfil del dueño (si no es mi propia prenda) para evitar búsquedas innecesarias
-        _ownerProfile =
-            _garment!.id == _authProvider.currentUserId
-                ? null
-                : await _profileRepository.getUserProfile(_garment!.ownerId);
-      } else {
-        _errorMessage = "Prenda no encontrada";
-      } */
-
       _errorMessage = _garment == null ? "Prenda no encontrada" : null;
-      _isLikedByCurrentUser = await _profileRepository.haveILikedThisGarment(
-        _authProvider.currentUserId!,
-        garmentId,
-      );
+
+      _isLikedByCurrentUser =
+          _authProvider.currentUserId != _garment!.ownerId
+              ? await _profileRepository.haveILikedThisGarment(
+                _authProvider.currentUserId!,
+                garmentId,
+              )
+              : false;
     } catch (e) {
       _errorMessage = e.toString();
       print(
@@ -106,7 +98,10 @@ class GarmentDetailProvider extends ChangeNotifier {
         // Quitar like
 
         // Quitar de la coleccion global de likes
-        _feedRepository.removeLikeFromGlobalCollection(likerUserId: currentUserId, likedGarmentId: garmentId);
+        _feedRepository.removeLikeFromGlobalCollection(
+          likerUserId: currentUserId,
+          likedGarmentId: garmentId,
+        );
 
         // Quitar de la coleccion de likes del usuario
         await _profileRepository.removeLikedGarmentFromMyProfile(
@@ -121,7 +116,7 @@ class GarmentDetailProvider extends ChangeNotifier {
 
         // Registrar el like en la coleccion global
         await _feedRepository.likeGarment(
-          likerUserId:currentUserId,
+          likerUserId: currentUserId,
           likedGarmentId: garmentId,
           likedGarmentOwnerId: ownerId,
         );
@@ -132,8 +127,7 @@ class GarmentDetailProvider extends ChangeNotifier {
           likedGarmentId: garmentId,
         );
         _isLikedByCurrentUser = true;
-              print("GarmentDetailProvider: Like garment $garmentId");
-
+        print("GarmentDetailProvider: Like garment $garmentId");
 
         //TODO: Comprobar si hubo match
       }
@@ -144,6 +138,24 @@ class GarmentDetailProvider extends ChangeNotifier {
     } catch (e) {
       _errorMessage = "Error al actualizar el like: ${e.toString()}";
       //_isLoadingLikeAction = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteThisGarment() async {
+    try {
+      if (_garment == null) return false;
+      _isLoading = true;
+      await _garmentRepository.deleteGarment(_garment!.id, _garment!.imageUrls);
+
+      _isLoading = false;
+      _errorMessage = null;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = "Error al eliminar la prenda: ${e.toString()}";
+      _isLoading = false;
       notifyListeners();
       return false;
     }

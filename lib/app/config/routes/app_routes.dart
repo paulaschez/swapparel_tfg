@@ -8,10 +8,10 @@ class AppRoutes {
   // Rutas Principales de la app (tras autenticarse)
   static const String home = '/home'; //MainAppScreen
 
-  // Rutas de Detalle (AÑADIR A MEDIDA QUE SE NECESITEN)
   static const String profile = '/profile/:userId'; 
   static const String editProfile = '/edit-profile'; 
   static const String garmentDetail = '/garment/:garmentId'; 
   static const String addGarment = '/add-garment';
+  static const String editGarment = '/garment/:garmentId/edit';
 
 }

@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import 'package:swapparel/app/config/routes/app_routes.dart';
 import 'package:swapparel/app/config/theme/app_theme.dart';
 import 'package:swapparel/core/utils/responsive_utils.dart';
@@ -83,6 +84,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                                     .resetPassword(
                                       email: userMailCtrl.text.trim(),
                                     );
+                                context.go(AppRoutes.login);
 
                                 if (mounted && success) {
                                   ScaffoldMessenger.of(context).showSnackBar(

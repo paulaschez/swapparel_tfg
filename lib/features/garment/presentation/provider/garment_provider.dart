@@ -85,7 +85,7 @@ class GarmentProvider extends ChangeNotifier {
         size: size,
         description: description,
         brand: brand,
-        material: material
+        material: material,
       );
 
       // Guardar datos en firestore
@@ -111,5 +111,71 @@ class GarmentProvider extends ChangeNotifier {
       _uploadErrorMessage = null;
     }
     notifyListeners();
+  }
+
+  Future<bool> updateExistingGarment({
+    required String garmentId,
+    required String name,
+    String? description,
+    String? category,
+    String? size,
+    required String condition,
+    String? brand,
+    String? color,
+    String? material,
+    required List<XFile> newImagesToUpload,
+    required List<String> imageUrlsToDeleteFromStorage,
+    required List<String> existingImageUrlsToKeep,
+  }) async {
+    if (_authProvider.currentUserId == null) {
+      //TODO: /* ... error ... */
+      return false;
+    }
+    _setUploading(true);
+    _setUploadError(null);
+
+    try {
+      List<String> finalImageUrls = List.from(existingImageUrlsToKeep);
+
+      // 1. Subir nuevas imágenes
+      if (newImagesToUpload.isNotEmpty) {
+        final List<String> uploadedNewUrls = await _garmentRepository
+            .uploadGarmentImages(
+              userId: _authProvider.currentUserId!,
+              garmentId: garmentId, // Usar el ID existente para la ruta
+              imageFiles: newImagesToUpload, // Pasar XFiles
+            );
+        finalImageUrls.addAll(uploadedNewUrls);
+      }
+
+      // 2. Borrar imágenes antiguas de Storage
+      if (imageUrlsToDeleteFromStorage.isNotEmpty) {
+        await _garmentRepository.deleteSpecificGarmentImages(
+          imageUrlsToDeleteFromStorage,
+        );
+      }
+
+      // 3. Crear el Map de datos a actualizar en Firestore
+      Map<String, dynamic> dataToUpdate = {
+        'name': name,
+        'description': description,
+        'category': category,
+        'color' : color,
+        'material': material,
+        'brand' :brand,
+        'imageUrls': finalImageUrls, // La lista final de URLs
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      // 4. Actualizar datos en Firestore
+      await _garmentRepository.updateGarmentData(garmentId, dataToUpdate);
+
+      _setUploading(false);
+      return true;
+    } catch (e) {
+      _setUploadError(e.toString());
+      _setUploading(false);
+      return false;
+    }
   }
 }

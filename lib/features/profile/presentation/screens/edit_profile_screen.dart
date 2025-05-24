@@ -1,10 +1,9 @@
-// ignore_for_file: avoid_print
-
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:swapparel/app/config/theme/app_theme.dart';
+import 'package:swapparel/core/utils/dialog_utils.dart';
 import 'package:swapparel/core/utils/image_picker_utils.dart';
 import 'package:swapparel/core/utils/responsive_utils.dart';
 import 'package:swapparel/features/auth/data/models/user_model.dart';
@@ -21,7 +20,6 @@ class EditProfileScreen extends StatefulWidget {
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-// TODO: Arreglar que una vez cambiados los datos del usuario se vea
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late UserModel? _user;
   XFile? _pickedProfileImage;
@@ -61,49 +59,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _confirmSignOut(BuildContext context) async {
-    final bool? didConfirm = await showDialog(
+   Future<void> _handleSignOut(BuildContext context) async { 
+    final bool? didConfirm = await showConfirmationDialogFixed( 
       context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: const Text(
-            'Confirmar cierre de sesión',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
-          backgroundColor: AppColors.lightGreen,
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(
-                  dialogContext,
-                ).pop(false); // Cierra el dialogo y devuelve false
-              },
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.error,
-              ),
-              onPressed: () {
-                Navigator.of(
-                  dialogContext,
-                ).pop(true); // Cierra el dialogo y devuelve true
-              },
-              child: const Text('Cerrar sesión'),
-            ),
-          ],
-          actionsAlignment: MainAxisAlignment.spaceEvenly,
-        );
-      },
+      title: 'Cerrar Sesión',
+      content: '¿Estás seguro de que quieres cerrar la sesión actual?',
+      confirmButtonText: 'Cerrar Sesión',
+      isDestructiveAction: true,
     );
 
-    // Si el usuario confirmo
     if (didConfirm == true) {
+      if (!mounted) return; 
       final authProvider = Provider.of<AuthProviderC>(context, listen: false);
       await authProvider.signOut();
       print("Usuario cerró sesión y debería ser redirigido por GoRouter.");
+    } else {
+      print("Cierre de sesión cancelado por el usuario.");
     }
   }
 
@@ -425,7 +396,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       width: double.infinity,
                       child: TextButton(
                         onPressed: () async {
-                          _confirmSignOut(context);
+                          _handleSignOut(context);
                           print("Cerrar Sesión presionado");
                         },
                         style: TextButton.styleFrom(

@@ -20,6 +20,7 @@ abstract class GarmentRepository {
     Map<String, dynamic> dataToUpdate,
   );
   Future<void> deleteGarment(String garmentId, List<String> imageUrls);
+  Future<void> deleteSpecificGarmentImages(List<String> imageUrlsToDelete);
 }
 
 class GarmentRepositoryImpl implements GarmentRepository {
@@ -83,12 +84,12 @@ class GarmentRepositoryImpl implements GarmentRepository {
     }
 
     try {
+      await batch.commit();
+
       if (deleteImageFutures.isNotEmpty) {
         await Future.wait(deleteImageFutures);
         print("GarmentRepo: Imágenes de Storage eliminadas exitosamente.");
       }
-
-      await batch.commit();
       print(
         "GarmentRepo: Documento de prenda $garmentId eliminado de Firestore.",
         //TODO: Cambiar reglas en Storage
@@ -173,6 +174,83 @@ class GarmentRepositoryImpl implements GarmentRepository {
       print("GarmentRepo Error - uploadGarmentImages: $e");
       // Si alguna imagen falla ¿devolver las que se subieron o lanzar excepcion?
       throw Exception("Failed to upload garment images.");
+    }
+  }
+
+  @override
+  Future<void> deleteSpecificGarmentImages(
+    List<String> imageUrlsToDelete,
+  ) async {
+    if (imageUrlsToDelete.isEmpty) {
+      print("GarmentRepo: No images provided to deleteSpecificGarmentImages.");
+      return;
+    }
+
+    List<Future<void>> deleteImageFutures = [];
+    List<String> successfullyDeletedPaths = [];
+    List<String> failedDeletionUrls = [];
+
+    for (String imageUrl in imageUrlsToDelete) {
+      if (imageUrl.isNotEmpty) {
+        try {
+          Reference imageRef = _storage.refFromURL(imageUrl);
+          deleteImageFutures.add(
+            imageRef
+                .delete()
+                .then((_) {
+                  print(
+                    "GarmentRepo: Imagen eliminada de Storage: ${imageRef.fullPath}",
+                  );
+                  successfullyDeletedPaths.add(imageRef.fullPath);
+                })
+                .catchError((error) {
+                  print(
+                    "GarmentRepo Warning - Failed to delete image (from future) $imageUrl (Path: ${imageRef.fullPath}). Error: $error",
+                  );
+                  failedDeletionUrls.add(imageUrl);
+                }),
+          );
+
+          print(
+            "GarmentRepo: Preparado para eliminar imagen de Storage: $imageUrl (Ruta: ${imageRef.fullPath})",
+          );
+        } catch (e) {
+          print(
+            "GarmentRepo Warning - deleteSpecificGarmentImages: Could not get ref for URL $imageUrl. Error: $e",
+          );
+          failedDeletionUrls.add(imageUrl);
+        }
+      }
+    }
+
+    if (deleteImageFutures.isNotEmpty) {
+      try {
+        await Future.wait(deleteImageFutures);
+        print(
+          "GarmentRepo:Proceso de eliminación de imágenes de Storage completado.",
+        );
+        if (failedDeletionUrls.isNotEmpty) {
+          print(
+            "GarmentRepo: Fallo al eliminar las siguientes URLs de Storage: $failedDeletionUrls",
+          );
+          // Podrías querer lanzar una excepción aquí si CUALQUIER imagen falló,
+          // o simplemente loguearlo y continuar.
+          // throw Exception("Algunas imágenes no pudieron ser eliminadas de Storage.");
+        }
+      } catch (e) {
+        print(
+          "GarmentRepo Error - deleteSpecificGarmentImages (Future.wait): $e",
+        );
+        throw Exception(
+          "Error general durante la eliminación de imágenes de Storage.",
+        );
+      }
+    } else if (imageUrlsToDelete.isNotEmpty &&
+        failedDeletionUrls.length == imageUrlsToDelete.length) {
+      // Todas las URLs eran inválidas o fallaron al obtener la referencia
+      throw Exception(
+        "No se pudieron obtener referencias válidas para ninguna de las imágenes a eliminar.",
+      );
     }
   }
 }

@@ -1,27 +1,29 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:swapparel/core/utils/image_picker_utils.dart';
 import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
-/* import 'package:swapparel/features/garment/data/models/garment_category.dart';
-import 'package:swapparel/features/garment/data/models/garment_condition.dart';
-import 'package:swapparel/features/garment/data/models/garment_size.dart'; */
+import 'package:swapparel/features/garment/data/models/garment_model.dart';
+import 'package:swapparel/features/garment/presentation/provider/garment_detail_provider.dart';
 import 'package:swapparel/features/garment/presentation/provider/garment_provider.dart';
 import 'package:swapparel/features/profile/presentation/provider/profile_provider.dart';
 import '../../../../app/config/theme/app_theme.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 
-class AddGarmentScreen extends StatefulWidget {
-  const AddGarmentScreen({super.key});
+class AddEditGarmentScreen extends StatefulWidget {
+  final String? garmentIdForEditing;
+  const AddEditGarmentScreen({super.key, this.garmentIdForEditing});
+  bool get isEditing => garmentIdForEditing != null;
 
   @override
-  State<AddGarmentScreen> createState() => _AddGarmentScreenState();
+  State<AddEditGarmentScreen> createState() => _AddEditGarmentScreenState();
 }
 
-class _AddGarmentScreenState extends State<AddGarmentScreen> {
+class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
   final _formKey = GlobalKey<FormState>();
 
   // Controladores de los campos del formulario
@@ -35,8 +37,11 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
   String? _selectedCategory;
   String? _selectedSize;
   String? _selectedCondition;
-  final List<XFile> _selectedImages = [];
-  final List<Uint8List?> _selectedImageBytesWeb = [];
+  // En _AddEditGarmentScreenState
+  List<EditableImage> _displayedImages = []; // Lista principal para la UI
+  final List<String> _imageUrlsToDeleteFromStorage = [];
+  // URLs de Storage a borrar al guardar
+  final List<XFile> _newXFilesToUpload = []; // Nuevos XFiles a subir al guardar
 
   final List<String> _categories = [
     'Camisa',
@@ -71,6 +76,79 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
     'Usado con detalles',
   ];
 
+  bool _isLoadingData = false;
+  GarmentModel? _garmentBeingEdited;
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isEditing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final garmentDetailProvider = Provider.of<GarmentDetailProvider>(
+          context,
+          listen: false,
+        );
+
+        // Comprobar si el provider tiene la prenda correcta
+        if (garmentDetailProvider.garment != null &&
+            garmentDetailProvider.garment!.id == widget.garmentIdForEditing) {
+          print(
+            "AddEditGarmentScreen: Usando GarmentModel existente del GarmentDetailProvider.",
+          );
+
+          setState(() {
+            _garmentBeingEdited = garmentDetailProvider.garment;
+            _populateControllersAndImages(_garmentBeingEdited!);
+            _isLoadingData = false;
+          });
+        } else {
+          // Si no está o es diferente, cargarla
+          print(
+            "AddEditGarmentScreen: GarmentModel no disponible o diferente en Provider. Cargando...",
+          );
+          setState(() => _isLoadingData = true);
+          await garmentDetailProvider.fetchGarmentDetails(
+            widget.garmentIdForEditing!,
+          );
+
+          if (mounted && garmentDetailProvider.garment != null) {
+            setState(() {
+              _garmentBeingEdited = garmentDetailProvider.garment;
+              _populateControllersAndImages(_garmentBeingEdited!);
+              _isLoadingData = false;
+            });
+          } else if (mounted) {
+            setState(() => _isLoadingData = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  "Error al cargar datos de la prenda: ${garmentDetailProvider.errorMessage ?? 'Desconocido'}",
+                ),
+              ),
+            );
+            if (context.canPop()) context.pop();
+          }
+        }
+      });
+    }
+  }
+
+  void _populateControllersAndImages(GarmentModel garment) {
+    print(
+      "AddEditGarmentScreen: Poblando controllers con datos de ${garment.name}",
+    );
+    _nameController.text = garment.name;
+    _descriptionController.text = garment.description ?? '';
+    _selectedCategory = garment.category;
+    _brandController.text = garment.brand ?? '';
+    _colorController.text = garment.color ?? '';
+    _selectedCondition = garment.condition;
+    _selectedSize = garment.size;
+    _materialController.text = garment.material ?? '';
+    _displayedImages =
+        garment.imageUrls.map((url) => EditableImage.network(url)).toList();
+    _imageUrlsToDeleteFromStorage.clear();
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -86,18 +164,21 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
     final XFile? pickedXFile = await imageUtils.pickImage(context);
 
     if (pickedXFile != null) {
-      if (_selectedImages.length < 5) {
+      if (_displayedImages.length < 5) {
         setState(() {
-          _selectedImages.add(pickedXFile);
           if (kIsWeb) {
             // Para web se leen los bytes para la previsualizacion
             pickedXFile.readAsBytes().then((bytes) {
               if (mounted) {
                 setState(() {
-                  _selectedImageBytesWeb.add(bytes);
+                  _displayedImages.add(EditableImage.web(pickedXFile, bytes));
+                  _newXFilesToUpload.add(pickedXFile);
                 });
               }
             });
+          } else {
+            _displayedImages.add(EditableImage.file(pickedXFile));
+            _newXFilesToUpload.add(pickedXFile);
           }
         });
       } else {
@@ -116,87 +197,238 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
 
   void _removeImage(int index) {
     setState(() {
-      _selectedImages.removeAt(index);
-      if (kIsWeb && index < _selectedImageBytesWeb.length) {
-        _selectedImageBytesWeb.removeAt(index);
+      EditableImage imageToRemove = _displayedImages[index];
+      _displayedImages.removeAt(index);
+
+      if (imageToRemove.type == ImageSourceType.network &&
+          imageToRemove.networkUrl != null) {
+        _imageUrlsToDeleteFromStorage.add(imageToRemove.networkUrl!);
+      } else if (imageToRemove.localXFile != null) {
+        _newXFilesToUpload.remove(imageToRemove.localXFile);
       }
     });
   }
 
-  void _submitGarment() async {
-    if (_formKey.currentState!.validate()) {
-      if (_selectedImages.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Por favor, añade al menos una imagen.'),
-            backgroundColor: Colors.orangeAccent,
+  void _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return; // No continuar si el formulario no es válido
+    }
+
+    // En modo añadir, se necesitan imágenes. En modo editar, podría no haber *nuevas* imágenes
+    // pero debe haber al menos una imagen en total (existente o nueva).
+    if (!widget.isEditing &&
+        _displayedImages
+            .where((img) => img.type != ImageSourceType.network)
+            .toList()
+            .isEmpty &&
+        _displayedImages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Añade al menos una imagen.'),
+          backgroundColor: Colors.orangeAccent,
+        ),
+      );
+      return;
+    }
+    if (widget.isEditing && _displayedImages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La prenda debe tener al menos una imagen.'),
+          backgroundColor: Colors.orangeAccent,
+        ),
+      );
+      return;
+    }
+
+    final garmentProvider = Provider.of<GarmentProvider>(
+      context,
+      listen: false,
+    );
+    final authProvider = Provider.of<AuthProviderC>(context, listen: false);
+    final profileProvider = Provider.of<ProfileProvider>(
+      context,
+      listen: false,
+    );
+
+    if (authProvider.currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: Usuario no identificado.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    // Preparar datos comunes
+    String name = _nameController.text.trim();
+    String? description =
+        _descriptionController.text.trim().isNotEmpty
+            ? _descriptionController.text.trim()
+            : null;
+    String category = _selectedCategory!; // Asumimos validados
+    String? size = _selectedSize;
+    String condition = _selectedCondition!; // Asumimos validados
+    String? brand =
+        _brandController.text.trim().isNotEmpty
+            ? _brandController.text.trim()
+            : null;
+    String? color =
+        _colorController.text.trim().isNotEmpty
+            ? _colorController.text.trim()
+            : null;
+    String? material =
+        _materialController.text.trim().isNotEmpty
+            ? _materialController.text.trim()
+            : null;
+
+    bool success = false;
+
+    if (widget.isEditing && _garmentBeingEdited != null) {
+      // --- LÓGICA DE EDITAR PRENDA ---
+      List<XFile> newFilesToUpload =
+          _displayedImages
+              .where(
+                (img) =>
+                    img.type == ImageSourceType.file ||
+                    img.type == ImageSourceType.webBytes,
+              )
+              .map((img) => img.localXFile!)
+              .toList();
+
+      List<String> existingUrlsToKeep =
+          _displayedImages
+              .where(
+                (img) =>
+                    img.type == ImageSourceType.network &&
+                    !_imageUrlsToDeleteFromStorage.contains(img.networkUrl),
+              )
+              .map((img) => img.networkUrl!)
+              .toList();
+
+      success = await garmentProvider.updateExistingGarment(
+        garmentId: _garmentBeingEdited!.id,
+        name: name,
+        description: description,
+        category: category,
+        size: size,
+        condition: condition,
+        brand: brand,
+        color: color,
+        material: material,
+        newImagesToUpload: newFilesToUpload,
+        imageUrlsToDeleteFromStorage: _imageUrlsToDeleteFromStorage,
+        existingImageUrlsToKeep: existingUrlsToKeep,
+      );
+    } else {
+      // --- LÓGICA DE AÑADIR NUEVA PRENDA ---
+      List<XFile> imagesToUpload =
+          _displayedImages
+              .map(
+                (img) => img.localXFile!,
+              ) // Asumimos que al añadir todas son locales (XFile)
+              .toList();
+
+      success = await garmentProvider.submitNewGarment(
+        name: name,
+        description: description,
+        category: category,
+        size: size,
+        condition: condition,
+        brand: brand,
+        color: color,
+        material: material,
+        images: imagesToUpload, // Pasamos los XFiles
+      );
+    }
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Prenda ${widget.isEditing ? "actualizada" : "subida"} con éxito!',
           ),
+        ),
+      );
+      // Refrescar el perfil del usuario actual para que vea los cambios en su lista de prendas
+      await profileProvider.refreshUserGarments(authProvider.currentUserId!);
+
+      // Si estamos editando y el ProfileProvider también muestra el detalle de esta prenda,
+      // podríamos necesitar refrescarlo también, o simplemente hacer pop y que GarmentDetailScreen se recargue.
+      if (widget.isEditing) {
+        final garmentDetailProvider = Provider.of<GarmentDetailProvider>(
+          context,
+          listen: false,
         );
-        return;
+        await garmentDetailProvider.fetchGarmentDetails(
+          _garmentBeingEdited!.id,
+        ); // Refrescar el detalle
       }
 
-      final garmentProvider = Provider.of<GarmentProvider>(
-        context,
-        listen: false,
-      );
-      final authProvider = Provider.of<AuthProviderC>(context, listen: false);
-      final profileProvider = Provider.of<ProfileProvider>(
-        context,
-        listen: false,
-      );
-
-      bool success = await garmentProvider.submitNewGarment(
-        name: _nameController.text.trim(),
-        description:
-            _descriptionController.text.trim().isNotEmpty
-                ? _descriptionController.text.trim()
-                : null,
-        category: _selectedCategory!,
-        size: _selectedSize,
-        condition: _selectedCondition!,
-        brand:
-            _brandController.text.trim().isNotEmpty
-                ? _brandController.text.trim()
-                : null,
-        color:
-            _colorController.text.trim().isNotEmpty
-                ? _colorController.text.trim()
-                : null,
-        material:
-            _materialController.text.trim().isNotEmpty
-                ? _materialController.text.trim()
-                : null,
-        images: _selectedImages,
-      );
-
-      if (!mounted) return;
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('¡Prenda subida con éxito!')),
-        );
-        await profileProvider.refreshUserGarments(authProvider.currentUserId!);
-        context.pop();
-        print(
-          "Subir Prenda: Nombre: ${_nameController.text}, Categoría: $_selectedCategory, Imágenes: ${_selectedImages.length}",
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              garmentProvider.uploadErrorMessage ?? 'Error al subir la prenda.',
-            ),
-            backgroundColor: Colors.redAccent,
+      context.pop(); // Volver a la pantalla anterior
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            garmentProvider.uploadErrorMessage ??
+                'Error al ${widget.isEditing ? "actualizar" : "subir"} la prenda.',
           ),
-        );
-      }
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final garmentDetailP = context.watch<GarmentDetailProvider>();
+
     final double horizontalPadding = ResponsiveUtils.horizontalPadding(context);
     final double verticalSpacing = ResponsiveUtils.verticalSpacing(context);
+
+    // Si estamos editando y los datos se acaban de cargar (y no los teníamos en _garmentBeingEdited)
+    if (widget.isEditing &&
+        garmentDetailP.garment != null &&
+        _garmentBeingEdited == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && garmentDetailP.garment != null) {
+          setState(() {
+            // Asegurar que se actualice la UI con los datos cargados
+            _garmentBeingEdited = garmentDetailP.garment;
+            _populateControllersAndImages(_garmentBeingEdited!);
+          });
+        }
+      });
+    }
+
+    if (widget.isEditing && _isLoadingData && _garmentBeingEdited == null) {
+      // Mostrando loader solo si estamos editando, cargando, Y aún no tenemos datos locales
+      return Scaffold(
+        appBar: AppBar(title: const Text("Cargando Prenda...")),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // Si es modo edición pero _garmentBeingEdited sigue siendo null (falló la carga), muestra error
+    if (widget.isEditing && _garmentBeingEdited == null && !_isLoadingData) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text("Error"),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        body: Center(
+          child: Text(
+            garmentDetailP.errorMessage ??
+                "No se pudo cargar la prenda para editar.",
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -207,12 +439,12 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
             size: ResponsiveUtils.fontSize(context, baseSize: 20, maxSize: 24),
           ),
         ),
-        title: Text("Añadir Prenda"),
+        title: Text(widget.isEditing ? "Editar Prenda " : "Añadir Prenda"),
         actions: [
           TextButton(
-            onPressed: _submitGarment, // Llama al método de subida
+            onPressed: _submitForm, // Llama al método de subida
             child: Text(
-              "Subir",
+              widget.isEditing ? "Guardar cambios" : "Subir",
               style: TextStyle(
                 color:
                     AppColors
@@ -230,7 +462,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
-          horizontal: horizontalPadding*1.5,
+          horizontal: horizontalPadding * 1.5,
           vertical: verticalSpacing * 1.5,
         ),
         child: Form(
@@ -256,7 +488,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
                   border: Border.all(color: AppColors.primaryGreen),
                 ),
                 child:
-                    _selectedImages.isEmpty
+                    _displayedImages.isEmpty
                         ? Center(
                           child: Text(
                             "Añade hasta 5 imágenes",
@@ -266,13 +498,13 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
                         : ListView.builder(
                           scrollDirection: Axis.horizontal,
                           itemCount:
-                              _selectedImages.length +
-                              (_selectedImages.length < 5
+                              _displayedImages.length +
+                              (_displayedImages.length < 5
                                   ? 1
                                   : 0), // Botón '+' si < 5 imágenes
                           itemBuilder: (context, index) {
-                            if (index == _selectedImages.length &&
-                                _selectedImages.length < 5) {
+                            if (index == _displayedImages.length &&
+                                _displayedImages.length < 5) {
                               // Botón para añadir más imágenes
                               return Padding(
                                 padding: const EdgeInsets.all(8.0),
@@ -305,10 +537,10 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
                                 ),
                               );
                             }
-                            if (index >= _selectedImages.length) {
+                            if (index >= _displayedImages.length) {
                               return const SizedBox.shrink(); // Seguridad
                             }
-                            final xFile = _selectedImages[index];
+                            final editableImage = _displayedImages[index];
 
                             // Miniatura de imagen seleccionada
                             return Padding(
@@ -331,48 +563,57 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(8),
                                       image:
-                                          kIsWeb &&
-                                                  index <
-                                                      _selectedImageBytesWeb
-                                                          .length &&
-                                                  _selectedImageBytesWeb[index] !=
+                                          editableImage.type ==
+                                                      ImageSourceType.network &&
+                                                  editableImage.networkUrl !=
                                                       null
                                               ? DecorationImage(
-                                                image: MemoryImage(
-                                                  _selectedImageBytesWeb[index]!,
-                                                ),
+                                                image:
+                                                    CachedNetworkImageProvider(
+                                                      editableImage.networkUrl!,
+                                                    ),
                                                 fit: BoxFit.cover,
                                               )
-                                              : (!kIsWeb
+                                              : (editableImage.type ==
+                                                          ImageSourceType
+                                                              .file &&
+                                                      editableImage
+                                                              .localXFile !=
+                                                          null &&
+                                                      !kIsWeb
                                                   ? DecorationImage(
                                                     image: FileImage(
-                                                      File(xFile.path),
+                                                      File(
+                                                        editableImage
+                                                            .localXFile!
+                                                            .path,
+                                                      ),
                                                     ),
                                                     fit: BoxFit.cover,
                                                   )
-                                                  : null),
+                                                  : (editableImage.type ==
+                                                              ImageSourceType
+                                                                  .webBytes &&
+                                                          editableImage
+                                                                  .webBytes !=
+                                                              null &&
+                                                          kIsWeb
+                                                      ? DecorationImage(
+                                                        image: MemoryImage(
+                                                          editableImage
+                                                              .webBytes!,
+                                                        ),
+                                                        fit: BoxFit.cover,
+                                                      )
+                                                      : null // Placeholder si es un tipo no esperado o datos faltantes
+                                                      )),
                                       color:
-                                          (kIsWeb &&
-                                                  (index >=
-                                                          _selectedImageBytesWeb
-                                                              .length ||
-                                                      _selectedImageBytesWeb[index] ==
-                                                          null) &&
-                                                  !(!kIsWeb)
+                                          (editableImage.displaySource == null)
                                               ? Colors.grey[200]
-                                              : (!kIsWeb
-                                                  ? null
-                                                  : Colors.grey[200])),
+                                              : null,
                                     ),
                                     child:
-                                        (kIsWeb &&
-                                                    (index >=
-                                                            _selectedImageBytesWeb
-                                                                .length ||
-                                                        _selectedImageBytesWeb[index] ==
-                                                            null) &&
-                                                    !(!kIsWeb)) ||
-                                                (!kIsWeb && xFile.path.isEmpty)
+                                        (editableImage.displaySource == null)
                                             ? Center(
                                               child: Icon(
                                                 Icons.hourglass_empty,
@@ -412,7 +653,7 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
                           },
                         ),
               ),
-              if (_selectedImages
+              if (_displayedImages
                   .isEmpty) // Botón principal para añadir si no hay ninguna imagen aún
                 Padding(
                   padding: EdgeInsets.only(top: verticalSpacing * 0.75),
@@ -601,5 +842,45 @@ class _AddGarmentScreenState extends State<AddGarmentScreen> {
         ],
       ),
     );
+  }
+}
+
+enum ImageSourceType { network, file, webBytes }
+
+class EditableImage {
+  final String? id; // Para identificarlo, podría ser la URL o el path del XFile
+  final ImageSourceType type;
+  final String? networkUrl; // Si es una imagen existente
+  final XFile? localXFile; // Si es una nueva imagen seleccionada
+  final Uint8List?
+  webBytes; // Si es una nueva imagen de web (para previsualización)
+
+  EditableImage.network(this.networkUrl)
+    : type = ImageSourceType.network,
+      localXFile = null,
+      webBytes = null,
+      id = networkUrl;
+
+  EditableImage.file(this.localXFile)
+    : type = ImageSourceType.file,
+      networkUrl = null,
+      webBytes = null,
+      id = localXFile?.path; // O localXFile.name para web
+
+  EditableImage.web(
+    this.localXFile,
+    this.webBytes,
+  ) // localXFile para metadata, webBytes para mostrar
+  : type = ImageSourceType.webBytes,
+      networkUrl = null,
+      id = localXFile?.path; // O localXFile.name
+
+  // Getter para facilitar la visualización
+  dynamic get displaySource {
+    if (type == ImageSourceType.network) return networkUrl;
+    if (type == ImageSourceType.file)
+      return File(localXFile!.path); // ¡Cuidado con web!
+    if (type == ImageSourceType.webBytes) return webBytes;
+    return null;
   }
 }
