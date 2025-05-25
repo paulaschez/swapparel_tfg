@@ -7,6 +7,7 @@ import 'package:swapparel/features/feed/presentation/provider/feed_provider.dart
 import 'package:swapparel/features/garment/data/repositories/garment_repository.dart';
 import 'package:swapparel/features/garment/presentation/provider/garment_detail_provider.dart';
 import 'package:swapparel/features/garment/presentation/provider/garment_provider.dart';
+import 'package:swapparel/features/match/data/repositories/match_repository.dart';
 import 'package:swapparel/features/profile/data/repositories/profile_repository.dart';
 import 'package:swapparel/features/profile/presentation/provider/profile_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -74,6 +75,11 @@ class MyAppInitializer extends StatelessWidget {
                   GarmentRepositoryImpl(firestore: firestore, storage: storage),
         ),
 
+        ProxyProvider<FirebaseFirestore, MatchRepository>(
+          update:
+              (_, firestore, __) => MatchRepositoryImpl(firestore: firestore),
+        ),
+
         // ChangeNotifierProviders
         ChangeNotifierProvider<AuthProviderC>(
           create:
@@ -92,6 +98,7 @@ class MyAppInitializer extends StatelessWidget {
             return FeedProvider(
               feedRepository: context.read<FeedRepository>(),
               profileRepository: context.read<ProfileRepository>(),
+              matchRepository: context.read<MatchRepository>(),
               currentUserId: authProvider.currentUserId ?? '',
             );
           },
@@ -105,6 +112,7 @@ class MyAppInitializer extends StatelessWidget {
               return FeedProvider(
                 feedRepository: context.read<FeedRepository>(),
                 currentUserId: newUserId,
+                matchRepository: context.read<MatchRepository>(),
                 profileRepository: context.read<ProfileRepository>(),
               );
             } else {

@@ -1,3 +1,5 @@
+import 'package:swapparel/features/match/data/models/match_model.dart';
+import 'package:swapparel/features/match/data/repositories/match_repository.dart';
 import 'package:swapparel/features/profile/data/repositories/profile_repository.dart';
 import 'package:flutter/foundation.dart'; // Para ChangeNotifier
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,19 +15,17 @@ class FeedProvider extends ChangeNotifier {
   final FeedRepository _feedRepository;
   final String _currentUserId; // Necesitas el ID del usuario actual
   final ProfileRepository _profileRepository;
-
-  // TODO: Considerar inyectar MatchRepository si el match check se hace aquí
-  // final MatchRepository _matchRepository;
+  final MatchRepository _matchRepository;
 
   FeedProvider({
     required FeedRepository feedRepository,
     required String currentUserId,
     required ProfileRepository profileRepository,
-    // required MatchRepository matchRepository,
+    required MatchRepository matchRepository,
   }) : _feedRepository = feedRepository,
        _currentUserId = currentUserId,
-       _profileRepository = profileRepository;
-  // _matchRepository = matchRepository;
+       _profileRepository = profileRepository,
+       _matchRepository = matchRepository;
 
   List<GarmentModel> _garments = []; // Lista de prendas a mostrar en el feed
   bool _isLoading = false;
@@ -193,10 +193,18 @@ class FeedProvider extends ChangeNotifier {
       );
 
       // 5. Comprobar si hay match (Aquí o llamando a un MatchProvider/Repository)
-      // bool didMatch = await _matchRepository.checkForMatch(...);
-      // if (didMatch) {
-      //   // Mostrar notificación de match, crear chat, etc.
-      // }
+      final MatchModel? match = await _matchRepository.checkForAndCreateMatch(
+        likerUserId: currentUserId,
+        likedGarmentOwnerId: garment.ownerId,
+        likedGarmentId: garment.id,
+      );
+
+      if (match != null) {
+        print("FeedProvider: ¡ES UN MATCH! ID: ${match.id}");
+        // TODO:  Notificar a ambos usuarios.
+        //       await _notificationRepository.createMatchNotification(match, _currentUserId, garment.ownerId);
+        // TODO: Opcionalmente, mostrar un feedback de match inmediato en la UI del FeedScreen.
+      }
 
       _errorMessage = null;
     } catch (e) {
