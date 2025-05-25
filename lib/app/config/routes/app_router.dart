@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:swapparel/features/garment/data/models/garment_model.dart';
 import 'package:swapparel/features/garment/presentation/screens/add_edit_garment_screen.dart';
 import 'package:swapparel/features/garment/presentation/screens/garment_detail_screen.dart';
 import 'package:swapparel/features/profile/presentation/screens/profile_screen.dart';
@@ -107,7 +106,7 @@ class AppRouter {
           final String userId = state.pathParameters['userId']!;
           return ProfileScreen(
             viewingUserId: userId,
-            isCurrentUserProfile: false,
+            isCurrentUserProfile: false, // false porque solo se llama desde el feed / prenda detalle (de prenda ajena)
           );
         },
       ),

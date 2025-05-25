@@ -1,12 +1,9 @@
-//import 'package:swapparel/features/auth/data/repositories/auth_repository.dart';
-// ignore_for_file: avoid_print
-
 import 'package:swapparel/features/profile/data/repositories/profile_repository.dart';
 import 'package:flutter/foundation.dart'; // Para ChangeNotifier
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/repositories/feed_repository.dart';
 import '../../../garment/data/models/garment_model.dart';
-import 'package:swapparel/app/config/constants/firestore_collections.dart'; // <--- IMPORTA AQUÍ
+import 'package:swapparel/app/config/constants/firestore_collections.dart';
 
 //import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
 
@@ -60,8 +57,20 @@ class FeedProvider extends ChangeNotifier {
     _lastVisibleDocument = null;
     notifyListeners();
 
+    print("FeedProvider: Initializing feed for $_currentUserId");
     await _loadUserInteractions();
-    await fetchMoreGarments(isInitialLoad: true);
+    print(
+      "FeedProvider: User interactions loaded. Liked: ${_likedGarmentIds.length}, Disliked: ${_dislikedGarmentIds.length}",
+    );
+    if (_currentUserId.isNotEmpty) {
+      await fetchMoreGarments(isInitialLoad: true);
+    } else {
+      _isLoading = false;
+      _hasMoreGarments = false; // No hay más que cargar si no hay usuario
+      _errorMessage = "Usuario no identificado para cargar el feed.";
+      notifyListeners(); // Notificar este estado final
+      print("FeedProvider: Cannot initialize feed, currentUserId is empty.");
+    }
   }
 
   // Método principal para cargar prendas
@@ -69,23 +78,55 @@ class FeedProvider extends ChangeNotifier {
     bool isInitialLoad = false,
     int minBatchSize = 5,
   }) async {
-    if (_isLoading || !_hasMoreGarments) return;
+    print(
+      "FeedProvider: fetchMoreGarments called. isInitialLoad: $isInitialLoad, isLoading: $_isLoading, hasMore: $_hasMoreGarments",
+    );
+    if (_isLoading && !isInitialLoad) {
+      print(
+        "FeedProvider: fetchMoreGarments - Exiting: Already loading and not initial load.",
+      );
+      return;
+    }
 
-    _isLoading = true;
-    if (!isInitialLoad) {
+    if (!hasMoreGarments) {
+      print(
+        "FeedProvider: fetchMoreGarments - Exiting: No more garments to fetch.",
+      );
+
+      if (_isLoading) {
+        // Solo si estaba en true por alguna razón (no debería si hasMore es false)
+        _isLoading = false;
+        notifyListeners();
+      }
+      return;
+    }
+
+    if (!isInitialLoad && !_isLoading) {
+      // Si es una carga subsecuente Y no estábamos cargando antes
+      _isLoading = true;
       notifyListeners();
-    } // No notificar al inicio para evitar doble build
-
+    } else if (isInitialLoad && !_isLoading) {
+      // Caso raro: es carga inicial pero initializeFeed no puso isLoading a true. Forzarlo.
+      _isLoading = true;
+    }
     List<GarmentModel> newValidGarments = [];
+    print("FeedProvider: fetchMoreGarments - Entering try block.");
 
     try {
       while (newValidGarments.length < minBatchSize && _hasMoreGarments) {
+        print(
+          "FeedProvider: fetchMoreGarments - Inside while loop. newValid: ${newValidGarments.length}, minBatch: $minBatchSize, hasMore: $_hasMoreGarments",
+        );
         final List<GarmentModel> fetchedBatch = await _feedRepository
             .getGarmentsForFeed(
               currentUserId: _currentUserId,
               lastVisibleDocument: _lastVisibleDocument,
               limit: 10, // Pide un lote más grande para tener margen al filtrar
             );
+
+        print(
+          "FeedProvider: fetchMoreGarments - Fetched batch size: ${fetchedBatch.length}",
+        );
 
         if (fetchedBatch.isEmpty) {
           _hasMoreGarments = false;
@@ -120,6 +161,9 @@ class FeedProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+      print(
+        "FeedProvider: fetchMoreGarments finished. isLoading: $_isLoading, garments: ${_garments.length}",
+      );
     }
   }
 
@@ -157,13 +201,12 @@ class FeedProvider extends ChangeNotifier {
       _errorMessage = null;
     } catch (e) {
       _errorMessage = e.toString();
-      // ¿Volver a añadir la prenda a la lista si el like falla? Considerar.
+      // ¿Volver a añadir la prenda a la lista si el like falla?
     } finally {
       _isLoading = false;
       notifyListeners();
       // Cargar más si quedan pocas prendas
       if (_garments.length < 3 && _hasMoreGarments) {
-        // Umbral, ajústalo
         fetchMoreGarments();
       }
     }
@@ -215,13 +258,23 @@ class FeedProvider extends ChangeNotifier {
   }
 
   Future<void> _loadUserInteractions() async {
+    if (_currentUserId.isEmpty) {
+      // No intentar cargar si no hay ID
+      _likedGarmentIds = {};
+      _dislikedGarmentIds = {};
+      print(
+        "FeedProvider: Skipping _loadUserInteractions, currentUserId is empty.",
+      );
+      return;
+    }
+    print("FeedProvider: Loading user interactions for $_currentUserId");
     try {
       // Cargar IDs de prendas likeadas por el usuario
       final likedSnapshot =
           await FirebaseFirestore.instance
               .collection(usersCollection)
               .doc(_currentUserId)
-              .collection('likedItems')
+              .collection('myLikedGarments')
               .get();
       _likedGarmentIds = likedSnapshot.docs.map((doc) => doc.id).toSet();
 
@@ -230,11 +283,19 @@ class FeedProvider extends ChangeNotifier {
           await FirebaseFirestore.instance
               .collection(usersCollection)
               .doc(_currentUserId)
-              .collection('dislikedItems')
+              .collection('myDislikedGarments')
               .get();
       _dislikedGarmentIds = dislikedSnapshot.docs.map((doc) => doc.id).toSet();
+
+      print(
+        "FeedProvider: Loaded liked: ${_likedGarmentIds.length}, disliked: ${_dislikedGarmentIds.length}",
+      );
     } catch (e) {
       print("Error loading user interactions: $e");
+      print("FeedProvider Error - _loadUserInteractions: $e");
+      _likedGarmentIds = {}; // En caso de error, dejar las listas vacías
+      _dislikedGarmentIds = {};
+      _errorMessage = "Error al cargar interacciones del usuario.";
     }
   }
 }

@@ -231,8 +231,10 @@ class _GarmentDetailScreenState extends State<GarmentDetailScreen> {
                 // Lógica para manejar la selección del menú
                 if (result == editOption) {
                   print("Simulación: Editar prenda ${garment.id}");
-                  context.pushNamed('editGarment', pathParameters: {'garmentId': garment.id}, );
-
+                  context.pushNamed(
+                    'editGarment',
+                    pathParameters: {'garmentId': garment.id},
+                  );
                 } else if (result == deleteOption) {
                   print(
                     "Simulación: Mostrar diálogo para borrar prenda ${garment.id}",
@@ -393,25 +395,26 @@ class _GarmentDetailScreenState extends State<GarmentDetailScreen> {
                         ],
 
                         // Puntos de navegación
-                        Positioned(
-                          bottom: 10,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryGreen.withValues(
-                                alpha: 0.9,
+                        if (garment.imageUrls.length > 1)
+                          Positioned(
+                            bottom: 10,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryGreen.withValues(
+                                  alpha: 0.9,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
                               ),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(
-                                garment.imageUrls.length,
-                                (index) => _buildDotIndicator(index),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(
+                                  garment.imageUrls.length,
+                                  (index) => _buildDotIndicator(index),
+                                ),
                               ),
                             ),
                           ),
-                        ),
                       ],
                     ),
 

@@ -1,14 +1,12 @@
-import 'dart:async';
-
+import 'package:go_router/go_router.dart';
 import 'package:swapparel/core/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart'; 
+import 'package:provider/provider.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
-// import '../provider/feed_provider.dart'; 
+import '../provider/feed_provider.dart';
 import '../widgets/garment_swipe_card.dart';
-import '../../../garment/data/models/garment_model.dart'; //  para los datos de ejemplo
-import 'package:cloud_firestore/cloud_firestore.dart'; 
-import '../../../../app/config/theme/app_theme.dart'; 
+import '../../../../app/config/theme/app_theme.dart';
+
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
 
@@ -19,54 +17,16 @@ class FeedScreen extends StatefulWidget {
 class _FeedScreenState extends State<FeedScreen> {
   final CardSwiperController _swiperController = CardSwiperController();
 
-  // --- DATOS DE EJEMPLO ---
-  final List<GarmentModel> _exampleGarments = [];
-  bool _isLoadingExample = true; 
-  int _swipeCount = 0;
-
   @override
   void initState() {
     super.initState();
-    // --- CARGA DE DATOS DE EJEMPLO ---
-    _loadExampleGarments();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final feedProvider = Provider.of<FeedProvider>(context, listen: false);
+      if (feedProvider.garments.isEmpty && !feedProvider.isLoading) {
+        print("FeedScreen initState: Calling initializeFeed.");
 
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   final feedProvider = Provider.of<FeedProvider>(context, listen: false);
-    //   if (feedProvider.garments.isEmpty && !feedProvider.isLoading) {
-    //     feedProvider.initializeFeed();
-    //   }
-    // });
-  }
-
-  void _loadExampleGarments() {
-    // Simula una carga con retraso
-    Future.delayed(const Duration(seconds: 1), () {
-      if (!mounted) return;
-      setState(() {
-        _exampleGarments.addAll(
-          List.generate(
-            10, // Número de prendas de ejemplo
-            (index) => GarmentModel(
-              id: 'garment_id_$index',
-              ownerId: 'owner_id_$index',
-              ownerUsername: '@user_example_$index',
-              ownerPhotoUrl: "https://picsum.photos/seed/user$index/50/50",
-              name: 'Prenda Atractiva $index $_swipeCount',
-              imageUrls: List.generate(
-                index % 4 + 1,
-                (imgIdx) => 'url_img_${index}_$imgIdx',
-              ), // 1 a 4 imágenes
-              size: 'M',
-              condition: index % 2 == 0 ? 'Como Nuevo' : 'Buen Estado',
-              category: 'Camisa',
-              createdAt: Timestamp.now(),
-              isAvailable: true,
-              // description, brand, color, material pueden ser null
-            ),
-          ),
-        );
-        _isLoadingExample = false;
-      });
+        feedProvider.initializeFeed();
+      }
     });
   }
 
@@ -77,51 +37,51 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 
   bool _onSwipe(
-    int previousIndex,
-    int? currentIndex,
+    int
+    previousIndex, // indice de la lista feedProvider.garments que se acaba de swipear
+    int? currentIndex, // el nuevo indice que el swiper va a mostrar
     CardSwiperDirection direction,
   ) {
-    if (previousIndex >= 0 && previousIndex < _exampleGarments.length) {
-      final swipedGarment = _exampleGarments[previousIndex];
-      if (direction == CardSwiperDirection.right) {
-        print("SIMULACIÓN: Liked: ${swipedGarment.name}");
-        // Provider.of<FeedProvider>(context, listen: false).swipeRight(swipedGarment);
-      } else if (direction == CardSwiperDirection.left) {
-        print("SIMULACIÓN: Disliked: ${swipedGarment.name}");
-        // Provider.of<FeedProvider>(context, listen: false).swipeLeft(swipedGarment);
-      }
-
-      // Incrementar el contador de swipes
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _swipeCount++;
-          });
-        }
-      });
+    final feedProvider = Provider.of<FeedProvider>(context, listen: false);
+    if (previousIndex < 0 || previousIndex >= feedProvider.garments.length) {
+      print("FeedScreen: _onSwipe con previousIndex inválido: $previousIndex");
+      return false;
     }
 
-    /* if (currentIndex != null && _exampleGarments.length - _swipeCount < 3) {
-      //&& // Menos de 3 restantes
-      //     !_isLoadingExample /*&& feedProvider.hasMoreGarments && !feedProvider.isLoading*/) {
-      setState(() {
-        _loadExampleGarments();
-      });(); 
-      TODO FUNCIÓN PARA AÑADIR MÁS A LA LISTA
-      //   // Provider.of<FeedProvider>(context, listen: false).fetchMoreGarments();
-    } */
+    final swipedGarment = feedProvider.garments[previousIndex];
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (direction == CardSwiperDirection.right) {
+        print("FeedScreen: Liked: ${swipedGarment.name}");
+        feedProvider.swipeRight(swipedGarment);
+      } else if (direction == CardSwiperDirection.left) {
+        print("FeedScreen: Disliked: ${swipedGarment.name}");
+        feedProvider.swipeLeft(swipedGarment);
+      }
+    });
+
     return true;
   }
 
   @override
   Widget build(BuildContext context) {
-    // final feedProvider = context.watch<FeedProvider>();
+    final feedProvider = context.watch<FeedProvider>();
 
-    // Tamaños y espaciados responsivos
     final double horizontalPadding = ResponsiveUtils.horizontalPadding(context);
     final double verticalSpacing = ResponsiveUtils.largeVerticalSpacing(
       context,
     );
+
+    // Se muestra si no está cargando, la lista de prendas está vacía,
+    // Y el provider indica que ya no hay más para cargar.
+    final bool showNoMoreCardsMessage =
+        !feedProvider.isLoading &&
+        feedProvider.garments.isEmpty &&
+        !feedProvider.hasMoreGarments;
+
+    // Se muestra si hay prendas, o si está cargando pero ya tiene algunas prendas (para paginación)
+    final bool showSwiper =
+        feedProvider.garments.isNotEmpty ||
+        (feedProvider.isLoading && feedProvider.garments.isNotEmpty);
 
     return Scaffold(
       body: SafeArea(
@@ -129,12 +89,12 @@ class _FeedScreenState extends State<FeedScreen> {
           children: [
             Expanded(
               child:
-                  _isLoadingExample &&
-                          _exampleGarments
+                  feedProvider.isLoading &&
+                          feedProvider
+                              .garments
                               .isEmpty // Estado de carga inicial
                       ? const Center(child: CircularProgressIndicator())
-                      : _swipeCount >= _exampleGarments.length &&
-                          !_isLoadingExample // No hay más prendas
+                      : showNoMoreCardsMessage
                       ? Center(
                         child: Padding(
                           padding: EdgeInsets.all(20.0),
@@ -151,14 +111,35 @@ class _FeedScreenState extends State<FeedScreen> {
                           ),
                         ),
                       )
+                      : !feedProvider.isLoading &&
+                          !showSwiper // No hay más prendas
+                      ? Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20.0),
+                          child: Text(
+                            "Preparando prendas..",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.fontSize(
+                                context,
+                                baseSize: 16,
+                              ),
+                              color: AppColors.darkGreen,
+                            ),
+                          ),
+                        ),
+                      )
                       : CardSwiper(
                         controller: _swiperController,
-                        cardsCount: _exampleGarments.length,
+                        cardsCount: feedProvider.garments.length,
                         onSwipe: _onSwipe,
-                        onUndo: _onUndo,
+                        //onUndo: _onUndo,
                         isLoop: false,
+
                         numberOfCardsDisplayed:
-                            _exampleGarments.length < 2 ? 1 : 2,
+                            feedProvider.garments.isEmpty
+                                ? 0
+                                : (feedProvider.garments.length < 2 ? 1 : 2),
                         backCardOffset: const Offset(15, 15),
                         padding: EdgeInsets.symmetric(
                           horizontal: horizontalPadding,
@@ -173,13 +154,13 @@ class _FeedScreenState extends State<FeedScreen> {
                           horizontalThresholdPercentage,
                           verticalThresholdPercentage,
                         ) {
-                          if (index >= _exampleGarments.length) {
+                          if (index >= feedProvider.garments.length) {
                             return const SizedBox.shrink();
                           }
-                          final garment = _exampleGarments[index];
+                          final garment = feedProvider.garments[index];
 
                           double iconOpacity = 0.0;
-                          double iconScale = 0.5; 
+                          double iconScale = 0.5;
                           IconData? feedbackIcon;
                           Color? feedbackIconColor;
 
@@ -224,22 +205,27 @@ class _FeedScreenState extends State<FeedScreen> {
                                 garment: garment,
                                 onInfoTap: () {
                                   print(
-                                    "SIMULACIÓN: Info tap: ${garment.name}",
+                                    "FeedScreen: Info tap: ${garment.name}. Navegando a pantalla detalle",
                                   );
-                                  // TODO: Navegar a GarmentDetailScreen(garment: garment)
+
+                                  context.pushNamed(
+                                    'garmentDetail',
+                                    pathParameters: {'garmentId': garment.id},
+                                  );
                                 },
                                 onProfileTap: () {
                                   print(
-                                    "SIMULACIÓN: Profile tap: ${garment.ownerUsername}",
+                                    "FeedScreen: Profile tap: ${garment.ownerUsername}. Navegando a pantalla del perfil",
                                   );
-                                  // TODO: Navegar a ProfileScreen(userId: garment.ownerId, isCurrentUserProfile: false)
+                                  context.pushNamed(
+                                    'profile',
+                                    pathParameters: {'userId': garment.ownerId},
+                                  );
                                 },
                               ),
 
                               // --- Icono de Feedback Visual (Opacidad y Escala) ---
-                              if (feedbackIcon != null &&
-                                  iconOpacity >
-                                      0) 
+                              if (feedbackIcon != null && iconOpacity > 0)
                                 Positioned.fill(
                                   child: Center(
                                     child: Opacity(
@@ -268,8 +254,10 @@ class _FeedScreenState extends State<FeedScreen> {
                         },
                       ),
             ),
-            if (_exampleGarments.length != _swipeCount &&
-                !_isLoadingExample) // Solo mostrar si hay tarjetas
+            if (!(feedProvider.isLoading && feedProvider.garments.isEmpty) &&
+                feedProvider
+                    .garments
+                    .isNotEmpty) // Solo mostrar si hay tarjetas
               Padding(
                 padding: EdgeInsets.symmetric(
                   vertical: verticalSpacing,
@@ -315,12 +303,16 @@ class _FeedScreenState extends State<FeedScreen> {
     );
   }
 
-  bool _onUndo(
+  // TODO: Implementar Undo? Requiere deshacer todo en el feed provider.
+  // O Solo Hacer la acción una vez que se haya swipeado ya otra prenda
+  //( no se podría hacer undo a dicha prenda ya )
+
+  /* bool _onUndo(
     int? previousIndex,
     int currentIndex,
     CardSwiperDirection direction,
   ) {
     print('SIMULACIÓN: Undid ${direction.name}');
     return true;
-  }
+  } */
 }

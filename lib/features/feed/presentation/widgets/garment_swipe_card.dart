@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-//import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../garment/data/models/garment_model.dart';
 import '../../../../app/config/theme/app_theme.dart';
-import '../../../../core/utils/responsive_utils.dart'; 
+import '../../../../core/utils/responsive_utils.dart';
 
 class GarmentSwipeCard extends StatefulWidget {
   final GarmentModel garment;
@@ -27,7 +27,6 @@ class _GarmentSwipeCardState extends State<GarmentSwipeCard> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-       
         final double aspectRatio = 2 / 3;
 
         return Center(
@@ -37,7 +36,6 @@ class _GarmentSwipeCardState extends State<GarmentSwipeCard> {
               padding: const EdgeInsets.all(12.0),
               decoration: BoxDecoration(
                 color: AppColors.lightGreen,
-                //borderRadius: BorderRadius.circular(20.0),
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.darkGreen.withValues(alpha: 0.3),
@@ -55,46 +53,39 @@ class _GarmentSwipeCardState extends State<GarmentSwipeCard> {
                       alignment: Alignment.center,
                       children: [
                         Container(
-                          decoration: BoxDecoration(
-                            //borderRadius: BorderRadius.circular(15.0),
-                            color: Colors.grey[200],
-                          ),
+                          decoration: BoxDecoration(color: Colors.grey[200]),
                           clipBehavior: Clip.antiAlias,
                           child:
                               widget.garment.imageUrls.isNotEmpty
-                                  // --- SIMULACIÓN DE IMAGEN DE RED ---
                                   ? Container(
                                     // Placeholder visual para la imagen
                                     alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      image:
-                                          _currentImageIndex < 2
-                                              ? DecorationImage(
-                                                // Simula 2 imágenes diferentes
-                                                image: NetworkImage(
-                                                  "https://picsum.photos/seed/${widget.garment.id}_$_currentImageIndex/400/600",
-                                                ), // Imagen placeholder aleatoria
-                                                fit: BoxFit.cover,
-                                              )
-                                              : null,
-                                      color:
-                                          _currentImageIndex >= 2
-                                              ? Colors.blueGrey
-                                              : null, // Color si no hay imagen
-                                    ),
-                                    child: Text(
-                                      "Imagen ${widget.garment.imageUrls[_currentImageIndex]}",
-                                      style: TextStyle(color: Colors.grey[600]),
+                                    color: Colors.white,
+                                    child: CachedNetworkImage(
+                                      imageUrl:
+                                          widget
+                                              .garment
+                                              .imageUrls[_currentImageIndex],
+                                      fit: BoxFit.cover,
+                                      placeholder:
+                                          (context, url) => Container(
+                                            color:
+                                                Colors
+                                                    .grey[200], // Placeholder mientras carga
+                                            child: const Center(
+                                              child: SizedBox(
+                                                width: 20,
+                                                height:
+                                                    20, // Tamaño más pequeño para el loader
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2.0,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
                                     ),
                                   )
-                                  // : CachedNetworkImage(
-                                  //     imageUrl: widget.garment.imageUrls[_currentImageIndex],
-                                  //     fit: BoxFit.cover,
-                                  //     width: double.infinity,
-                                  //     height: double.infinity,
-                                  //     placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                                  //     errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                                  //   )
                                   : const Center(
                                     child: Icon(
                                       Icons.image_not_supported,
@@ -211,7 +202,7 @@ class _GarmentSwipeCardState extends State<GarmentSwipeCard> {
                                   widget.garment.size!.isNotEmpty)
                                 Text(
                                   "Talla: ${widget.garment.size}",
-                          
+
                                   style: Theme.of(
                                     context,
                                   ).textTheme.bodyMedium?.copyWith(
@@ -253,9 +244,7 @@ class _GarmentSwipeCardState extends State<GarmentSwipeCard> {
                               Icons.info_outline,
                               color: Theme.of(context).colorScheme.secondary,
                             ),
-                            onPressed:
-                                widget
-                                    .onInfoTap, // Se mantiene para simular acción
+                            onPressed: widget.onInfoTap,
                           ),
                       ],
                     ),
@@ -269,9 +258,7 @@ class _GarmentSwipeCardState extends State<GarmentSwipeCard> {
                       vertical: 6.0,
                     ),
                     child: GestureDetector(
-                      onTap:
-                          widget
-                              .onProfileTap, // Se mantiene para simular acción
+                      onTap: widget.onProfileTap,
                       child: Row(
                         children: [
                           CircleAvatar(
@@ -283,14 +270,14 @@ class _GarmentSwipeCardState extends State<GarmentSwipeCard> {
                               maxSize: 28,
                             ),
                             backgroundColor: Colors.grey[300],
-                            // --- SIMULACIÓN DE IMAGEN DE PERFIL ---
-                            // backgroundImage: widget.garment.ownerPhotoUrl != null && widget.garment.ownerPhotoUrl!.isNotEmpty
-                            //     ? CachedNetworkImageProvider(widget.garment.ownerPhotoUrl!)
-                            //     : null,
+
+                            backgroundImage: widget.garment.ownerPhotoUrl != null && widget.garment.ownerPhotoUrl!.isNotEmpty
+                             ? CachedNetworkImageProvider(widget.garment.ownerPhotoUrl!)
+                                 : null,
                             child:
-                            /* widget.garment.ownerPhotoUrl == null ||
+                            widget.garment.ownerPhotoUrl == null ||
                                         widget.garment.ownerPhotoUrl!.isEmpty
-                                    ?  */
+                                    ? 
                             Icon(
                               Icons.person,
                               size: ResponsiveUtils.fontSize(
@@ -301,9 +288,9 @@ class _GarmentSwipeCardState extends State<GarmentSwipeCard> {
                                 maxSize: 30,
                               ),
                               color: Colors.white,
-                            ),
-                            /* : null */
-                          ),
+                            )
+                            : null
+                          ),/*  */
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
