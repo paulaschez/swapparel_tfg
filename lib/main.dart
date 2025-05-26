@@ -7,6 +7,9 @@ import 'package:swapparel/features/feed/presentation/provider/feed_provider.dart
 import 'package:swapparel/features/garment/data/repositories/garment_repository.dart';
 import 'package:swapparel/features/garment/presentation/provider/garment_detail_provider.dart';
 import 'package:swapparel/features/garment/presentation/provider/garment_provider.dart';
+import 'package:swapparel/features/inbox/chat/data/repositories/chat_repository.dart';
+import 'package:swapparel/features/inbox/chat/presentation/provider/chat_detail_provider.dart';
+import 'package:swapparel/features/inbox/chat/presentation/provider/chat_list_provider.dart';
 import 'package:swapparel/features/match/data/repositories/match_repository.dart';
 import 'package:swapparel/features/inbox/notification/data/repositories/notification_repository.dart';
 import 'package:swapparel/features/inbox/notification/presentation/provider/notification_provider.dart';
@@ -86,6 +89,10 @@ class MyAppInitializer extends StatelessWidget {
           update:
               (_, firestore, __) =>
                   NotificationRepositoryImpl(firestore: firestore),
+        ),
+        ProxyProvider<FirebaseFirestore, ChatRepository>(
+          update:
+              (_, firestore, __) => ChatRepositoryImpl(firestore: firestore),
         ),
 
         // ChangeNotifierProviders
@@ -179,6 +186,49 @@ class MyAppInitializer extends StatelessWidget {
               (context, auth, previous) => NotificationProvider(
                 // Se recrea si auth cambia
                 notificationRepository: context.read<NotificationRepository>(),
+                authProvider: auth,
+              ),
+        ),
+        ChangeNotifierProxyProvider<AuthProviderC, ChatListProvider>(
+          create:
+              (context) => ChatListProvider(
+                matchRepository:
+                    context
+                        .read<
+                          MatchRepository
+                        >(), // Asume que MatchRepo provee la lista de chats
+                authProvider: context.read<AuthProviderC>(),
+              ),
+          update: (context, authProvider, previousChatListProvider) {
+            // Si el usuario cambió (detectado por el UID) o es la primera vez,
+            // crea una NUEVA instancia de ChatListProvider.
+            // Esto llamará al constructor de ChatListProvider, que a su vez llamará a _loadOrClearConversations.
+            if (previousChatListProvider == null ||
+                previousChatListProvider.authProvider.currentUserId !=
+                    authProvider.currentUserId) {
+              print(
+                "Main.dart: Recreating ChatListProvider for user: ${authProvider.currentUserId}",
+              );
+              return ChatListProvider(
+                matchRepository: context.read<MatchRepository>(),
+                authProvider: authProvider,
+              );
+            }
+            // Si el usuario no cambió, pero AuthProviderC notificó por otra razón,
+            // reutilizamos la instancia anterior de ChatListProvider para no perder su estado.
+            return previousChatListProvider;
+          },
+        ),
+        ChangeNotifierProxyProvider<AuthProviderC, ChatDetailProvider>(
+          create:
+              (context) => ChatDetailProvider(
+                chatRepository: context.read<ChatRepository>(),
+                authProvider: context.read<AuthProviderC>(),
+              ),
+          update:
+              (context, auth, previous) => ChatDetailProvider(
+                // Recrear si auth cambia
+                chatRepository: context.read<ChatRepository>(),
                 authProvider: auth,
               ),
         ),

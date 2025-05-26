@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-//import 'package:provider/provider.dart';
-//import 'package:go_router/go_router.dart'; 
-//import '../../../../../app/config/routes/app_routes.dart'; 
-// TODO: Importar ChatListProvider (o MatchProvider si los matches son las conversaciones)
-// TODO: Importar MatchModel o un ConversationModel
-// import '../provider/chat_list_provider.dart';
-// import '../../../match/data/models/match_model.dart';
+import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:swapparel/core/utils/responsive_utils.dart';
+import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
+import 'package:timeago/timeago.dart' as timeago;
+import '../../../../../app/config/routes/app_routes.dart';
+import '../provider/chat_list_provider.dart';
+import '../../../../match/data/models/match_model.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Para avatares
 import '../../../../../app/config/theme/app_theme.dart'; // Para AppColors
 
@@ -18,37 +19,34 @@ class ChatListScreen extends StatefulWidget {
 }
 
 class _ChatListScreenState extends State<ChatListScreen> {
-
   @override
   void initState() {
-    super.initState();
-    // TODO: Llamar al provider para cargar la lista de chats/matches si es necesario
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   Provider.of<ChatListProvider>(context, listen: false).fetchConversations();
-    // });
+    super
+        .initState(); // Al ser ChangeNotifierProxyProvider ya se llama a _loadOrClearConversations
   }
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Obtener datos del ChatListProvider
-    // final chatListProvider = context.watch<ChatListProvider>();
-    // final List<MatchModel> conversations = chatListProvider.conversations; // O MatchModel
-    // final bool isLoading = chatListProvider.isLoading;
+    final chatListProvider = context.watch<ChatListProvider>();
+    final authProvider = context.watch<AuthProviderC>();
 
-    // --- DATOS DE EJEMPLO POR AHORA ---
-    final bool isLoading = false; // Simular que no está cargando
-    final List<Map<String, dynamic>> exampleConversations = [
-      {'id': 'match_id_1', 'otherName': 'Charlie Brown', 'otherUserPhotoUrl': 'https://picsum.photos/seed/charlie/50/50', 'lastMessage': '¡Hola! ¿Cuándo quedamos?', 'timestamp': Timestamp.fromDate(DateTime.now().subtract(Duration(minutes: 5))), 'unreadCount': 1},
-      {'id': 'match_id_2', 'otherName': 'Lucy Van Pelt', 'otherUserPhotoUrl': 'https://picsum.photos/seed/lucy/50/50', 'lastMessage': 'Ok, perfecto.', 'timestamp': Timestamp.fromDate(DateTime.now().subtract(Duration(hours: 2))), 'unreadCount': 0},
-      {'id': 'match_id_3', 'otherName': 'Snoopy', 'otherUserPhotoUrl': null, 'lastMessage': 'Woof woof!', 'timestamp': Timestamp.fromDate(DateTime.now().subtract(Duration(days: 1))), 'unreadCount': 3},
-    ];
-    // --- FIN DATOS DE EJEMPLO ---
-
-
-    if (isLoading && exampleConversations.isEmpty) {
+    if (chatListProvider.isLoading && chatListProvider.conversations.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (exampleConversations.isEmpty && !isLoading) {
+
+    if (chatListProvider.errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            "Error: ${chatListProvider.errorMessage}",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+        ),
+      );
+    }
+    if (chatListProvider.conversations.isEmpty && !chatListProvider.isLoading) {
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(16.0),
@@ -62,60 +60,136 @@ class _ChatListScreenState extends State<ChatListScreen> {
     }
 
     return ListView.separated(
-      itemCount: exampleConversations.length,
-      separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, color: AppColors.primaryGreen,), // Separador
+      itemCount: chatListProvider.conversations.length,
+      separatorBuilder:
+          (context, index) => const Divider(
+            height: 1,
+            indent: 16,
+            color: AppColors.primaryGreen,
+          ),
       itemBuilder: (context, index) {
-        final conversation = exampleConversations[index]; // TODO: Cambiar a ConversationModel
-        final bool hasUnread = (conversation['unreadCount'] ?? 0) > 0;
+        final MatchModel conversation =
+            chatListProvider
+                .conversations[index]; // TODO: Cambiar a ConversationModel
+        String otherUserId = '';
+        if (conversation.participantIds.length == 2 &&
+            authProvider.currentUserId != null) {
+          otherUserId = conversation.participantIds.firstWhere(
+            (id) => id != authProvider.currentUserId,
+            orElse: () => '',
+          );
+        }
+
+        String otherUserName = "Usuario del Chat";
+        String? otherUserPhotoUrl;
+
+        if (conversation.participantDetails != null &&
+            conversation.participantDetails!.containsKey(otherUserId)) {
+          otherUserName =
+              conversation.participantDetails![otherUserId]!['name'] ??
+              'Usuario';
+          otherUserPhotoUrl =
+              conversation.participantDetails![otherUserId]!['photoUrl'];
+        } else {
+          // Fallback si no tienes los detalles en MatchModel
+          otherUserName =
+              "Usuario ${otherUserId.substring(0, 5)}"; // Muestra parte del ID
+        }
+
+        final String lastMessage =
+            conversation.lastMessageSnippet ?? "Inicia la conversación...";
+        // Formatear el timestamp
+        final String timeAgo =
+            conversation.lastActivityAt != null
+                ? timeago.format(
+                  conversation.lastActivityAt!.toDate(),
+                  locale: 'es',
+                ) // Configura el locale
+                : "Ahora";
+
+        // TODO: Implementar lógica de unreadCount para el usuario actual en este chat
+        final int unreadCountForThisChat =
+            conversation.unreadCounts[authProvider.currentUserId] ?? 0;
+        final bool hasUnread = unreadCountForThisChat > 0;
 
         return ListTile(
           leading: CircleAvatar(
             radius: 25,
-            backgroundImage: conversation['otherUserPhotoUrl'] != null
-                ? CachedNetworkImageProvider(conversation['otherUserPhotoUrl']!)
-                : null,
-            child: conversation['otherUserPhotoUrl'] == null ? const Icon(Icons.person) : null,
+            backgroundImage:
+                otherUserPhotoUrl != null && otherUserPhotoUrl.isNotEmpty
+                    ? CachedNetworkImageProvider(otherUserPhotoUrl)
+                    : null,
+            backgroundColor: Colors.grey[300],
+            child:
+                (otherUserPhotoUrl == null || otherUserPhotoUrl.isEmpty)
+                    ? Icon(Icons.person, color: Colors.white, size: 28)
+                    : null,
           ),
           title: Text(
-            conversation['otherName'] ?? 'Usuario',
-            style: TextStyle(fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal),
+            otherUserName,
+            style: TextStyle(
+              fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+              fontSize: ResponsiveUtils.fontSize(
+                context,
+                baseSize: 15,
+                maxSize: 17,
+              ),
+            ),
           ),
           subtitle: Text(
-            conversation['lastMessage'] ?? '...',
+            lastMessage,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: hasUnread ? Theme.of(context).textTheme.bodyLarge?.color : Colors.grey[600]),
+            style: TextStyle(
+              color:
+                  hasUnread
+                      ? Theme.of(context).textTheme.bodyLarge?.color
+                      : Colors.grey[600],
+              fontSize: ResponsiveUtils.fontSize(
+                context,
+                baseSize: 13,
+                maxSize: 15,
+              ),
+            ),
           ),
           trailing: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                //TODO: Usar paquete timeago
-                (conversation['timestamp'] as Timestamp).toDate().toString().substring(11,16),
+                timeAgo,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: ResponsiveUtils.fontSize(
+                    context,
+                    baseSize: 11,
+                    maxSize: 12,
+                  ),
                   color: hasUnread ? AppColors.primaryGreen : Colors.grey[600],
                 ),
               ),
               if (hasUnread) ...[
-                Expanded(
-                  child: CircleAvatar(
-                    radius: 10,
-                    backgroundColor: AppColors.likeRed,
-                    child: Text(
-                      conversation['unreadCount'].toString(),
-                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                const SizedBox(height: 4),
+                CircleAvatar(
+                  radius: 9,
+                  backgroundColor: AppColors.likeRed,
+                  child: Text(
+                    unreadCountForThisChat.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                )
-              ]
+                ),
+              ],
             ],
           ),
           onTap: () {
-            print("Navegando al chat con ID: ${conversation['id']}");
-            // TODO: Navegar al ChatScreen con el ID del chat/match
-            // context.push(AppRoutes.chatConversation.replaceFirst(':chatId', conversation['id']!));
+            print("Navegando al chat con ID: ${conversation.id}");
+            context.pushNamed(
+              'chatConversation', // Asume que 'chatConversation' es el nombre de tu ruta
+              pathParameters: {'chatId': conversation.id},
+            );
           },
         );
       },

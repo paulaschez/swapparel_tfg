@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:swapparel/features/auth/data/models/user_model.dart';
 import '../../../../app/config/constants/firestore_collections.dart';
 import '../models/match_model.dart'; // Tu MatchModel
 
@@ -81,6 +82,52 @@ class MatchRepositoryImpl implements MatchRepository {
       );
 
       if (likesQuery.docs.isNotEmpty) {
+        print("MatchRepo: Mutual like found!");
+
+        // --- OBTENER DETALLES DE LOS PARTICIPANTES ---
+        Map<String, Map<String, String?>> participantDetailsData = {};
+
+        // Obtener UserModel del likerUserId (Usuario A)
+        DocumentSnapshot userADoc =
+            await _firestore.collection(usersCollection).doc(likerUserId).get();
+        if (userADoc.exists) {
+          UserModel userA = UserModel.fromFirestore(
+            userADoc as DocumentSnapshot<Map<String, dynamic>>,
+          );
+          participantDetailsData[likerUserId] = {
+            'name': userA.name, // O userA.displayName si lo prefieres
+            'photoUrl': userA.photoUrl,
+          };
+        } else {
+          // Fallback si no se encuentra el perfil (no debería pasar)
+          participantDetailsData[likerUserId] = {
+            'name': 'Usuario $likerUserId',
+            'photoUrl': null,
+          };
+        }
+        // Obtener UserModel del likedGarmentOwnerId (Usuario B)
+        DocumentSnapshot userBDoc =
+            await _firestore
+                .collection(usersCollection)
+                .doc(likedGarmentOwnerId)
+                .get();
+        if (userBDoc.exists) {
+          UserModel userB = UserModel.fromFirestore(
+            userBDoc as DocumentSnapshot<Map<String, dynamic>>,
+          );
+          participantDetailsData[likedGarmentOwnerId] = {
+            'name': userB.name, // O userB.displayName
+            'photoUrl': userB.photoUrl,
+          };
+        } else {
+          // Fallback
+          participantDetailsData[likedGarmentOwnerId] = {
+            'name': 'Usuario $likedGarmentOwnerId',
+            'photoUrl': null,
+          };
+        }
+        final Timestamp now = Timestamp.now();
+
         // ¡MATCH MUTUO!
         print("MatchRepo DEBUG: Mutual like found!");
         final String garmentIdFromOtherUser = likesQuery.docs.first.getString(
@@ -88,15 +135,18 @@ class MatchRepositoryImpl implements MatchRepository {
         ); // Prenda del otro que me gustó
 
         final newMatch = MatchModel(
-          id: potentialMatchDocId, // Usar el ID predecible
+          id: potentialMatchDocId,
           participantIds: sortedParticipantIds,
           matchedItems: {
             // Guardar qué prendas iniciaron este match específico
             likerUserId: likedGarmentId,
             likedGarmentOwnerId: garmentIdFromOtherUser,
           },
-          createdAt: Timestamp.now(),
-          lastActivityAt: Timestamp.now(),
+          unreadCounts: {likerUserId: 0, likedGarmentOwnerId: 0},
+          participantDetails: participantDetailsData,
+          createdAt: now,
+          lastActivityAt: now,
+          lastMessageSnippet: "¡Han hecho match! Inicia la conversación.",
         );
         print(
           "MatchRepo DEBUG: Attempting to CREATE new match document: /matches/${newMatch.id}",
@@ -106,7 +156,7 @@ class MatchRepositoryImpl implements MatchRepository {
             .doc(newMatch.id)
             .set(newMatch.toJson());
 
-        print("MatchRepo DEBUG: CREATE new match document successful.");
+        print("MatchRepo: Match document created with ID: ${newMatch.id}");
         return newMatch;
       } else {
         print("MatchRepo DEBUG: No mutual like found. Returning null.");
@@ -115,7 +165,9 @@ class MatchRepositoryImpl implements MatchRepository {
       }
       //TODO: Hacer transaccion??
     } catch (e) {
-    print("MatchRepo CATCH Error - checkForAndCreateMatch: $e"); // Esto imprimirá el error de permiso
+      print(
+        "MatchRepo CATCH Error - checkForAndCreateMatch: $e",
+      ); // Esto imprimirá el error de permiso
       throw Exception("Failed to check for or create match.");
     }
   }
