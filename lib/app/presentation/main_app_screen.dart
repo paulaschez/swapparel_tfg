@@ -1,8 +1,7 @@
 import 'package:swapparel/app/config/theme/app_theme.dart';
-import 'package:swapparel/features/chat/presentation/screens/conversations_screen.dart';
 import 'package:swapparel/features/feed/presentation/screens/feed_screen.dart';
 import 'package:flutter/material.dart';
-//import '../../features/chat/presentation/screens/conversations_screen.dart';
+import 'package:swapparel/features/inbox/presentation/screens/inbox_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 
 class MainAppScreen extends StatefulWidget {
@@ -26,7 +25,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
     super.initState();
     _widgetOptions = <Widget>[
       const FeedScreen(), 
-      const ChatListScreen(),
+      const InboxScreen(),
       _buildProfileScreen(), // Llama al método para construir ProfileScreen
     ];
   }

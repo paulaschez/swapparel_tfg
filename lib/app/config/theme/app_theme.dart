@@ -152,12 +152,13 @@ class AppTheme {
       // TabBar Theme
       tabBarTheme: TabBarTheme(
         indicator: BoxDecoration( // Estilo del indicador de pestaña seleccionada
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(15),
           color: AppColors.primaryGreen,
         ),
+        dividerHeight: 0,
         labelColor: Colors.white, // Texto de la pestaña seleccionada
         unselectedLabelColor: AppColors.darkGreen, // Texto de la no seleccionada
-        labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.bold, ),
         unselectedLabelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w500),
       ),
 

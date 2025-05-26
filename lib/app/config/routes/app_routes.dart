@@ -13,5 +13,6 @@ class AppRoutes {
   static const String garmentDetail = '/garment/:garmentId'; 
   static const String addGarment = '/add-garment';
   static const String editGarment = '/garment/:garmentId/edit';
+  static const String chatConversation = '/chats/:chatId';
 
 }
