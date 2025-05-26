@@ -1,31 +1,34 @@
+import 'package:swapparel/features/auth/data/models/user_model.dart';
+import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
 import 'package:swapparel/features/match/data/models/match_model.dart';
 import 'package:swapparel/features/match/data/repositories/match_repository.dart';
+import 'package:swapparel/features/inbox/notification/data/models/notification_model.dart';
+import 'package:swapparel/features/inbox/notification/data/repositories/notification_repository.dart';
 import 'package:swapparel/features/profile/data/repositories/profile_repository.dart';
-import 'package:flutter/foundation.dart'; // Para ChangeNotifier
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/repositories/feed_repository.dart';
 import '../../../garment/data/models/garment_model.dart';
 import 'package:swapparel/app/config/constants/firestore_collections.dart';
 
-//import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
-
-// TODO: Importar un posible MatchRepository si el chequeo de match se hace aquí
-
 class FeedProvider extends ChangeNotifier {
   final FeedRepository _feedRepository;
-  final String _currentUserId; // Necesitas el ID del usuario actual
   final ProfileRepository _profileRepository;
   final MatchRepository _matchRepository;
+  final NotificationRepository _notificationRepository;
+  final AuthProviderC _authProvider;
 
   FeedProvider({
     required FeedRepository feedRepository,
-    required String currentUserId,
     required ProfileRepository profileRepository,
     required MatchRepository matchRepository,
+    required NotificationRepository notificationRepository,
+    required AuthProviderC authProvider,
   }) : _feedRepository = feedRepository,
-       _currentUserId = currentUserId,
        _profileRepository = profileRepository,
-       _matchRepository = matchRepository;
+       _matchRepository = matchRepository,
+       _notificationRepository = notificationRepository,
+       _authProvider = authProvider;
 
   List<GarmentModel> _garments = []; // Lista de prendas a mostrar en el feed
   bool _isLoading = false;
@@ -44,7 +47,8 @@ class FeedProvider extends ChangeNotifier {
       _hasMoreGarments; // La UI puede usar esto para no mostrar "cargar más"
   String? get errorMessage => _errorMessage;
   bool get canSwipe => _garments.isNotEmpty && !_isLoading;
-  String get currentUserId => _currentUserId;
+  String? get currentUserId => _authProvider.currentUserId;
+  UserModel? get _currentUserModel => _authProvider.currentUserModel;
 
   // --- Métodos Públicos ---
 
@@ -57,12 +61,12 @@ class FeedProvider extends ChangeNotifier {
     _lastVisibleDocument = null;
     notifyListeners();
 
-    print("FeedProvider: Initializing feed for $_currentUserId");
+    print("FeedProvider: Initializing feed for $currentUserId");
     await _loadUserInteractions();
     print(
       "FeedProvider: User interactions loaded. Liked: ${_likedGarmentIds.length}, Disliked: ${_dislikedGarmentIds.length}",
     );
-    if (_currentUserId.isNotEmpty) {
+    if (currentUserId != null || currentUserId!.isNotEmpty) {
       await fetchMoreGarments(isInitialLoad: true);
     } else {
       _isLoading = false;
@@ -81,6 +85,14 @@ class FeedProvider extends ChangeNotifier {
     print(
       "FeedProvider: fetchMoreGarments called. isInitialLoad: $isInitialLoad, isLoading: $_isLoading, hasMore: $_hasMoreGarments",
     );
+
+    if (currentUserId == null || currentUserId!.isEmpty) {
+      _isLoading = false;
+      _hasMoreGarments = false;
+      notifyListeners();
+      return;
+    }
+
     if (_isLoading && !isInitialLoad) {
       print(
         "FeedProvider: fetchMoreGarments - Exiting: Already loading and not initial load.",
@@ -119,7 +131,7 @@ class FeedProvider extends ChangeNotifier {
         );
         final List<GarmentModel> fetchedBatch = await _feedRepository
             .getGarmentsForFeed(
-              currentUserId: _currentUserId,
+              currentUserId: currentUserId!,
               lastVisibleDocument: _lastVisibleDocument,
               limit: 10, // Pide un lote más grande para tener margen al filtrar
             );
@@ -168,7 +180,7 @@ class FeedProvider extends ChangeNotifier {
   }
 
   Future<void> swipeRight(GarmentModel garment) async {
-    if (_isLoading) return;
+    if (isLoading || currentUserId == null || _currentUserModel == null) return;
     _isLoading = true;
     notifyListeners();
 
@@ -178,7 +190,7 @@ class FeedProvider extends ChangeNotifier {
 
       // 2. Registrar el like en el repositorio
       await _feedRepository.likeGarment(
-        likerUserId: _currentUserId,
+        likerUserId: currentUserId!,
         likedGarmentId: garment.id,
         likedGarmentOwnerId: garment.ownerId,
       );
@@ -188,21 +200,54 @@ class FeedProvider extends ChangeNotifier {
 
       // 4.  Persistir este cambio en _likedGarmentIds en Firestore para el usuario
       await _profileRepository.addLikedGarmentToMyProfile(
-        currentUserId: _currentUserId,
+        currentUserId: currentUserId!,
         likedGarmentId: garment.id,
       );
 
+      final String senderUsername = _currentUserModel!.atUsernameHandle;
+      final String? senderPhotoUrl = _currentUserModel!.photoUrl;
+
+      final likeNotification = NotificationModel(
+        id: '',
+        recipientId: garment.ownerId,
+        type: NotificationType.like,
+        relatedUserId: currentUserId,
+        relatedUserName: senderUsername,
+        relatedUserPhotoUrl: senderPhotoUrl,
+        relatedGarmentId: garment.id,
+        relatedGarmentName: garment.name,
+        relatedGarmentImageUrl:
+            garment.imageUrls.isNotEmpty ? garment.imageUrls[0] : null,
+        entityId: garment.id,
+        createdAt: Timestamp.now(),
+      );
+
+      await _notificationRepository.createNotification(likeNotification);
+
       // 5. Comprobar si hay match (Aquí o llamando a un MatchProvider/Repository)
       final MatchModel? match = await _matchRepository.checkForAndCreateMatch(
-        likerUserId: currentUserId,
+        likerUserId: currentUserId!,
         likedGarmentOwnerId: garment.ownerId,
         likedGarmentId: garment.id,
       );
 
       if (match != null) {
         print("FeedProvider: ¡ES UN MATCH! ID: ${match.id}");
-        // TODO:  Notificar a ambos usuarios.
-        //       await _notificationRepository.createMatchNotification(match, _currentUserId, garment.ownerId);
+        // Notificación para el usuario actual (likerUserId)
+        final matchNotificationForLiker = NotificationModel(
+          id: '', recipientId: currentUserId!, type: NotificationType.match,
+          relatedUserId: garment.ownerId, relatedUserName: garment.ownerUsername, relatedUserPhotoUrl: garment.ownerPhotoUrl,
+          createdAt: Timestamp.now(),
+        );
+        await _notificationRepository.createNotification(matchNotificationForLiker);
+
+        // Notificación para el dueño de la prenda (likedGarmentOwnerId)
+        final matchNotificationForOwner = NotificationModel(
+           id: '', recipientId: garment.ownerId, type: NotificationType.match,
+           relatedUserId: currentUserId, relatedUserName: senderUsername, relatedUserPhotoUrl: senderPhotoUrl,
+           createdAt: Timestamp.now(),
+        );
+        await _notificationRepository.createNotification(matchNotificationForOwner);
         // TODO: Opcionalmente, mostrar un feedback de match inmediato en la UI del FeedScreen.
       }
 
@@ -231,7 +276,7 @@ class FeedProvider extends ChangeNotifier {
 
       // 2. Registrar el dislike en el repositorio del perfil
       await _profileRepository.addDislikedGarmentToMyProfile(
-        currentUserId: _currentUserId,
+        currentUserId: currentUserId!,
         dislikedGarmentId: garment.id,
       );
 
@@ -266,7 +311,7 @@ class FeedProvider extends ChangeNotifier {
   }
 
   Future<void> _loadUserInteractions() async {
-    if (_currentUserId.isEmpty) {
+    if (currentUserId == null || currentUserId!.isEmpty) {
       // No intentar cargar si no hay ID
       _likedGarmentIds = {};
       _dislikedGarmentIds = {};
@@ -275,13 +320,13 @@ class FeedProvider extends ChangeNotifier {
       );
       return;
     }
-    print("FeedProvider: Loading user interactions for $_currentUserId");
+    print("FeedProvider: Loading user interactions for $currentUserId");
     try {
       // Cargar IDs de prendas likeadas por el usuario
       final likedSnapshot =
           await FirebaseFirestore.instance
               .collection(usersCollection)
-              .doc(_currentUserId)
+              .doc(currentUserId)
               .collection('myLikedGarments')
               .get();
       _likedGarmentIds = likedSnapshot.docs.map((doc) => doc.id).toSet();
@@ -290,7 +335,7 @@ class FeedProvider extends ChangeNotifier {
       final dislikedSnapshot =
           await FirebaseFirestore.instance
               .collection(usersCollection)
-              .doc(_currentUserId)
+              .doc(currentUserId)
               .collection('myDislikedGarments')
               .get();
       _dislikedGarmentIds = dislikedSnapshot.docs.map((doc) => doc.id).toSet();

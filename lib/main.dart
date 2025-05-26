@@ -8,6 +8,8 @@ import 'package:swapparel/features/garment/data/repositories/garment_repository.
 import 'package:swapparel/features/garment/presentation/provider/garment_detail_provider.dart';
 import 'package:swapparel/features/garment/presentation/provider/garment_provider.dart';
 import 'package:swapparel/features/match/data/repositories/match_repository.dart';
+import 'package:swapparel/features/inbox/notification/data/repositories/notification_repository.dart';
+import 'package:swapparel/features/inbox/notification/presentation/provider/notification_provider.dart';
 import 'package:swapparel/features/profile/data/repositories/profile_repository.dart';
 import 'package:swapparel/features/profile/presentation/provider/profile_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -80,6 +82,12 @@ class MyAppInitializer extends StatelessWidget {
               (_, firestore, __) => MatchRepositoryImpl(firestore: firestore),
         ),
 
+        ProxyProvider<FirebaseFirestore, NotificationRepository>(
+          update:
+              (_, firestore, __) =>
+                  NotificationRepositoryImpl(firestore: firestore),
+        ),
+
         // ChangeNotifierProviders
         ChangeNotifierProvider<AuthProviderC>(
           create:
@@ -94,12 +102,12 @@ class MyAppInitializer extends StatelessWidget {
         ),
         ChangeNotifierProxyProvider<AuthProviderC, FeedProvider>(
           create: (context) {
-            final authProvider = context.read<AuthProviderC>();
             return FeedProvider(
               feedRepository: context.read<FeedRepository>(),
               profileRepository: context.read<ProfileRepository>(),
               matchRepository: context.read<MatchRepository>(),
-              currentUserId: authProvider.currentUserId ?? '',
+              notificationRepository: context.read<NotificationRepository>(),
+              authProvider: context.read<AuthProviderC>(),
             );
           },
           update: (context, authProvider, previousFeedProvider) {
@@ -111,9 +119,10 @@ class MyAppInitializer extends StatelessWidget {
               );
               return FeedProvider(
                 feedRepository: context.read<FeedRepository>(),
-                currentUserId: newUserId,
                 matchRepository: context.read<MatchRepository>(),
                 profileRepository: context.read<ProfileRepository>(),
+                notificationRepository: context.read<NotificationRepository>(),
+                authProvider: authProvider,
               );
             } else {
               print(
@@ -157,6 +166,20 @@ class MyAppInitializer extends StatelessWidget {
                 profileRepository: context.read<ProfileRepository>(),
                 feedRepository: context.read<FeedRepository>(),
                 authProvider: context.read<AuthProviderC>(),
+              ),
+        ),
+
+        ChangeNotifierProxyProvider<AuthProviderC, NotificationProvider>(
+          create:
+              (context) => NotificationProvider(
+                notificationRepository: context.read<NotificationRepository>(),
+                authProvider: context.read<AuthProviderC>(),
+              ),
+          update:
+              (context, auth, previous) => NotificationProvider(
+                // Se recrea si auth cambia
+                notificationRepository: context.read<NotificationRepository>(),
+                authProvider: auth,
               ),
         ),
       ],
