@@ -35,9 +35,9 @@ class NotificationModel {
   String get displayMessage {
     switch (type) {
       case NotificationType.like:
-        return "${relatedUserName ?? 'Alguien'} ha dado 'Me Gusta' a tu prenda '${relatedGarmentName ?? 'una de tus prendas'}'.";
+        return "A ${relatedUserName ?? 'alguien'} le gusta tu prenda '${relatedGarmentName ?? 'una de tus prendas'}'.";
       case NotificationType.match:
-        return "¡Has hecho match con ${relatedUserName ?? 'alguien'}! Ahora pueden chatear.";
+        return "¡Has hecho match con ${relatedUserName ?? 'alguien'}! Ahora podéis chatear.";
        case NotificationType.message:
         return "Tienes nuevos mensajes sin leer ${relatedUserName!= null? "de ${relatedUserName!}": ''}.ƒ";
       default:
