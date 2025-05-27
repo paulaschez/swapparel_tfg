@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swapparel/features/garment/presentation/screens/add_edit_garment_screen.dart';
 import 'package:swapparel/features/garment/presentation/screens/garment_detail_screen.dart';
+import 'package:swapparel/features/inbox/chat/presentation/screens/chat_screen.dart';
 import 'package:swapparel/features/profile/presentation/screens/profile_screen.dart';
 
 import '../../../features/auth/presentation/provider/auth_provider.dart';
@@ -106,7 +107,8 @@ class AppRouter {
           final String userId = state.pathParameters['userId']!;
           return ProfileScreen(
             viewingUserId: userId,
-            isCurrentUserProfile: false, // false porque solo se llama desde el feed / prenda detalle (de prenda ajena)
+            isCurrentUserProfile:
+                false, // false porque solo se llama desde el feed / prenda detalle (de prenda ajena)
           );
         },
       ),
@@ -115,8 +117,29 @@ class AppRouter {
         name: 'editGarment',
         builder: (context, state) {
           final String garmentId = state.pathParameters['garmentId']!;
-         
+
           return AddEditGarmentScreen(garmentIdForEditing: garmentId);
+        },
+      ),
+
+      // En AppRouter.dart
+      GoRoute(
+        path: AppRoutes.chatConversation,
+        name: 'chatConversation',
+        builder: (context, state) {
+          final String chatId = state.pathParameters['chatId']!;
+          final Map<String, dynamic>? extraData =
+              state.extra as Map<String, dynamic>?; 
+
+          return ChatScreen(
+            chatId: chatId,
+
+            otherUserName: extraData?['otherUserName'] as String? ?? "Chat",
+            otherUserPhotoUrl: extraData?['otherUserPhotoUrl'] as String?,
+            otherUserId:
+                extraData?['otherUserId']
+                    as String?, 
+          );
         },
       ),
     ],

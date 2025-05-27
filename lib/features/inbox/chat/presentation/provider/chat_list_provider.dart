@@ -7,6 +7,7 @@ import '../../../../match/data/repositories/match_repository.dart'; // Para getM
 class ChatListProvider extends ChangeNotifier {
   final MatchRepository _matchRepository;
   final AuthProviderC _authProvider;
+  StreamSubscription? _conversationsSubscription;
 
   ChatListProvider({
     required MatchRepository matchRepository,
@@ -26,50 +27,46 @@ class ChatListProvider extends ChangeNotifier {
   List<MatchModel> get conversations => _conversations;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-    AuthProviderC get authProvider => _authProvider;
-
+  AuthProviderC get authProvider => _authProvider;
 
   void _loadOrClearConversations() {
-    if (_authProvider.isAuthenticated && _authProvider.currentUserId != null) {
-      fetchConversations(_authProvider.currentUserId!);
-    } else {
+    final userId = _authProvider.currentUserId;
+    if (userId == null || userId.isEmpty) {
       _clearConversationsData();
-    }
-  }
-
-  Future<void> fetchConversations(String userId) async {
-    // Evitar recargas si ya está cargando para el mismo usuario
-    if (_isLoading &&
-        _conversations.isNotEmpty &&
-        _authProvider.currentUserId == userId)
       return;
+    }
 
-    print("ChatListProvider: Fetching conversations for user $userId");
     _isLoading = true;
     _errorMessage = null;
-    // No necesariamente limpiar _conversations aquí si queremos que la UI no parpadee
-    // si ya había datos y solo estamos refrescando. Pero para una carga limpia sí.
-    // Si este método se llama porque el usuario cambió, _clearConversationsData ya lo hizo.
-    if (_conversations.isEmpty)
-      notifyListeners(); // Notificar que la carga ha comenzado
+    notifyListeners(); 
 
-    try {
-      // Asumimos que getMyMatches es un Future por ahora
-      _conversations = await _matchRepository.getMyMatches(userId);
-      _errorMessage = null;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _conversations = [];
-      print("ChatListProvider Error - fetchConversations: $_errorMessage");
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    _conversationsSubscription?.cancel();
+    _conversationsSubscription = _matchRepository
+        .getMyMatches(userId)
+        .listen(
+          (convos) {
+            _conversations = convos;
+            _isLoading = false;
+            _errorMessage = null;
+            notifyListeners();
+            print(
+              "ChatListProvider: Conversations updated via stream. Count: ${convos.length}",
+            );
+          },
+          onError: (error) {
+            _errorMessage = error.toString();
+            _isLoading = false;
+            _conversations = [];
+            notifyListeners();
+            print("ChatListProvider Error - conversations stream: $error");
+          },
+        );
   }
+
 
   void _clearConversationsData() {
     print("ChatListProvider: Clearing conversations data.");
-    // _conversationsSubscription?.cancel(); // Si usaras un stream
+    _conversationsSubscription?.cancel(); // Si usaras un stream
     _conversations = [];
     _isLoading = false;
     _errorMessage = null;
@@ -78,6 +75,7 @@ class ChatListProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _conversationsSubscription?.cancel();
     print("ChatListProvider: Disposed");
     super.dispose();
   }

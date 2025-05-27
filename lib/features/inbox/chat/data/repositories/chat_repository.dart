@@ -4,19 +4,15 @@ import '../../../../../app/config/constants/firestore_collections.dart';
 
 abstract class ChatRepository {
   // Obtiene un stream de mensajes para un chat específico, ordenados por tiempo.
-  // Usa 'lastMessageTimestamp' o 'lastDocument' para paginación si la implementas.
   Stream<List<MessageModel>> getChatMessages({
     required String chatId,
     int limit = 20, // Número de mensajes a cargar inicialmente o por página
-    // DocumentSnapshot? startAfterDocument, // Para paginación hacia atrás
   });
 
   // Envía un nuevo mensaje a un chat.
   Future<void> sendMessage({
     required String chatId, // ID del Match/Conversación
     required String senderId,
-    required String senderUsername, // Para desnormalización
-    String? senderPhotoUrl, // Para desnormalización
     required String text,
   });
 
@@ -28,7 +24,6 @@ abstract class ChatRepository {
     String? lastMessageSenderId,
   });
 
-  // (Opcional, pero muy útil) Marcar mensajes como leídos
   Future<void> markMessagesAsRead(String chatId, String userId);
 }
 
@@ -42,7 +37,7 @@ class ChatRepositoryImpl implements ChatRepository {
   Stream<List<MessageModel>> getChatMessages({
     required String chatId,
     int limit = 20,
-    // DocumentSnapshot? startAfterDocument,
+
   }) {
     if (chatId.isEmpty) {
       return Stream.value([]); // Devuelve stream vacío si no hay chatId
@@ -57,10 +52,6 @@ class ChatRepositoryImpl implements ChatRepository {
             descending: true,
           ) // Más recientes primero para la query inicial
           .limit(limit);
-
-      // if (startAfterDocument != null) {
-      //   query = query.startAfterDocument(startAfterDocument);
-      // }
 
       return query.snapshots().map((snapshot) {
         final messages =
@@ -83,8 +74,7 @@ class ChatRepositoryImpl implements ChatRepository {
   Future<void> sendMessage({
     required String chatId,
     required String senderId,
-    required String senderUsername,
-    String? senderPhotoUrl,
+
     required String text,
   }) async {
     if (chatId.isEmpty || senderId.isEmpty || text.trim().isEmpty) {
@@ -101,8 +91,7 @@ class ChatRepositoryImpl implements ChatRepository {
         id: '', // Firestore generará el ID para el documento del mensaje
         chatId: chatId,
         senderId: senderId,
-        /* senderUsername: senderUsername,
-        senderPhotoUrl: senderPhotoUrl, */
+
         text: text.trim(),
         timestamp: timestamp,
       );
@@ -165,7 +154,6 @@ class ChatRepositoryImpl implements ChatRepository {
 
           if (recipientId != null && recipientId.isNotEmpty) {
             // 3. Incrementar el contador para el receptor
-            // El path para el campo sería 'unreadCounts.USER_ID_DEL_RECEPTOR'
             updateData['unreadCounts.$recipientId'] = FieldValue.increment(1);
             print(
               "ChatRepo: Incrementando unread count para $recipientId en chat $chatId",
@@ -186,8 +174,13 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Future<void> markMessagesAsRead(String chatId, String currentUserId) async {
-    await _firestore.collection(matchesCollection).doc(chatId).update({
-      'unreadCounts.$currentUserId': 0,
-    });
+    try {
+      await _firestore.collection(matchesCollection).doc(chatId).update({
+        'unreadCounts.$currentUserId': 0,
+      });
+      print("ChatRepo: Chat $chatId marked as read for user $currentUserId");
+    } catch (e) {
+      print("ChatRepo Error - markChatAsRead: $e");
+    }
   }
 }

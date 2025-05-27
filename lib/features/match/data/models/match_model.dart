@@ -50,7 +50,7 @@ class MatchModel {
         if (userIdKey is String && userDetailsMap is Map) {
           Map<String, String?> details = {};
           // Iterar sobre el mapa interno de detalles del participante
-          (userDetailsMap as Map).forEach((detailKey, detailValue) {
+          (userDetailsMap).forEach((detailKey, detailValue) {
             if (detailKey is String) {
               // El valor puede ser String o null
               details[detailKey] = detailValue as String?;

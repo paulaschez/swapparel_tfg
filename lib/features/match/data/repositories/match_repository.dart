@@ -13,7 +13,7 @@ abstract class MatchRepository {
   });
 
   // Obtiene los matches/conversaciones de un usuario
-  Future<List<MatchModel>> getMyMatches(String userId);
+  Stream<List<MatchModel>> getMyMatches(String userId);
 }
 
 class MatchRepositoryImpl implements MatchRepository {
@@ -138,7 +138,6 @@ class MatchRepositoryImpl implements MatchRepository {
           id: potentialMatchDocId,
           participantIds: sortedParticipantIds,
           matchedItems: {
-            // Guardar qué prendas iniciaron este match específico
             likerUserId: likedGarmentId,
             likedGarmentOwnerId: garmentIdFromOtherUser,
           },
@@ -173,36 +172,35 @@ class MatchRepositoryImpl implements MatchRepository {
   }
 
   @override
-  Future<List<MatchModel>> getMyMatches(String userId) async {
+  Stream<List<MatchModel>> getMyMatches(String userId) {
+    // <--- IMPLEMENTAR STREAM
+    if (userId.isEmpty) return Stream.value([]);
     try {
-      final querySnapshot =
-          await _firestore
-              .collection(matchesCollection)
-              .where(
-                'participantIds',
-                arrayContains: userId,
-              ) // El usuario es uno de los participantes
-              .orderBy(
-                'lastActivityAt',
-                descending: true,
-              ) // Mostrar los más recientes primero
-              .get();
-
-      return querySnapshot.docs
+      return _firestore
+          .collection(matchesCollection)
+          .where('participantIds', arrayContains: userId)
+          .orderBy(
+            'lastActivityAt',
+            descending: true,
+          ) // Ordenar por la última actividad
+          .snapshots() 
           .map(
-            (doc) => MatchModel.fromFirestore(
-              doc as DocumentSnapshot<Map<String, dynamic>>,
-            ),
-          )
-          .toList();
+            (snapshot) =>
+                snapshot.docs
+                    .map(
+                      (doc) => MatchModel.fromFirestore(
+                        doc as DocumentSnapshot<Map<String, dynamic>>,
+                      ),
+                    )
+                    .toList(),
+          );
     } catch (e) {
-      print("MatchRepo Error - getMyMatches: $e");
-      throw Exception("Failed to get matches.");
+      print("MatchRepo Error - getMyMatchesStream: $e");
+      return Stream.error(Exception("Failed to get matches stream."));
     }
   }
 }
 
-// Necesitarás añadir getString a DocumentSnapshot (o hacer un cast seguro)
 extension DocumentSnapshotExtension on DocumentSnapshot {
   String getString(String key) {
     return (data() as Map<String, dynamic>)[key] as String? ?? '';

@@ -1,127 +1,252 @@
 import 'package:flutter/material.dart';
-import 'package:swapparel/features/inbox/chat/presentation/widgets/outgoing_message.dart';
-import 'package:swapparel/features/inbox/chat/presentation/widgets/incoming_message.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:swapparel/app/config/theme/app_theme.dart';
+import '../provider/chat_detail_provider.dart';
+import '../widgets/incoming_message_bubble.dart';
+import '../widgets/outgoing_message_bubble.dart';
+import '../../../../auth/presentation/provider/auth_provider.dart';
+import '../../../../../core/utils/responsive_utils.dart';
 
-class Chat extends StatefulWidget {
-  const Chat({super.key, required this.name});
+class ChatScreen extends StatefulWidget {
+  final String chatId;
+  final String otherUserName;
+  final String? otherUserPhotoUrl;
+  final String? otherUserId;
 
-  final String name;
-
+  const ChatScreen({
+    super.key,
+    required this.chatId,
+    required this.otherUserName,
+    this.otherUserPhotoUrl,
+    this.otherUserId,
+  });
   @override
-  State<Chat> createState() => _ChatState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatState extends State<Chat> {
+class _ChatScreenState extends State<ChatScreen> {
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController =
+      ScrollController(); // Para auto-scroll
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final chatDetailProvider = Provider.of<ChatDetailProvider>(
+        context,
+        listen: false,
+      );
+      chatDetailProvider.loadMessagesForChat(widget.chatId);
+    });
+  }
+
+  @override
+  void dispose() {
+    print("ChatScreen: Disposing...");
+
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _sendMessage() async {
+    if (_messageController.text.trim().isEmpty) return;
+
+    final chatDetailProvider = Provider.of<ChatDetailProvider>(
+      context,
+      listen: false,
+    );
+    bool success = await chatDetailProvider.sendMessage(
+      _messageController.text.trim(),
+    );
+
+    if (success) {
+      _messageController.clear();
+      _scrollToBottom(); // Auto-scroll después de enviar
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              chatDetailProvider.errorMessage ?? "Error al enviar mensaje",
+            ),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  void _scrollToBottom() {
+    // Da un pequeño respiro para que el ListView se reconstruya con el nuevo mensaje
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final chatDetailProvider = context.watch<ChatDetailProvider>();
+    final authUserId =
+        Provider.of<AuthProviderC>(context, listen: false).currentUserId;
+
+    // Escuchar cambios en los mensajes para hacer scroll
+    if (chatDetailProvider.messages.isNotEmpty) {
+      _scrollToBottom();
+    }
+
+    String appBarTitle = widget.otherUserName;
+    String? appBarPhotoUrl = widget.otherUserPhotoUrl;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF553370),
-      body: Container(
-        margin: EdgeInsets.only(top: 50.0),
+      appBar: AppBar(
+        backgroundColor: AppColors.primaryGreen,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            size: ResponsiveUtils.fontSize(context, baseSize: 20),
+          ),
+          onPressed: () => context.pop(),
+        ),
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: ResponsiveUtils.fontSize(
+                context,
+                baseSize: 18,
+                maxSize: 20,
+              ),
+              backgroundColor: Colors.grey[200],
+              backgroundImage:
+                  appBarPhotoUrl != null && appBarPhotoUrl.isNotEmpty
+                      ? CachedNetworkImageProvider(appBarPhotoUrl)
+                      : null,
+              child:
+                  (appBarPhotoUrl == null || appBarPhotoUrl.isEmpty)
+                      ? const Icon(Icons.person, size: 20, color: Colors.white)
+                      : null,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                appBarTitle,
+                style: Theme.of(context).appBarTheme.titleTextStyle?.copyWith(
+                  fontSize: ResponsiveUtils.fontSize(
+                    context,
+                    baseSize: 17,
+                    maxSize: 19,
+                  ),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+          print("ChatScreen: Tapped outside TextField, unfocusing.");
+        },
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Stack(
-                    alignment: AlignmentDirectional.centerStart,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 10.0),
-                        child: Icon(
-                          Icons.arrow_back_ios_new_outlined,
-                          color: Color(0Xffc199cd),
-                        ),
-                      ),
-                      Center(
-                        child: Text(
-                          widget.name,
-                          style: TextStyle(
-                            color: Color(0Xffc199cd),
-                            fontSize: size.width * 0.065,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: size.height * 0.02),
             Expanded(
-              child: Container(
-                padding: EdgeInsets.only(left: 20.0, right: 20.0, top: 50.0),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    OutgoingMessage(
-                      size: size,
-                      mssg: "Hola, tenemos que hablar",
-                    ),
-                    SizedBox(height: size.height * 0.017),
-                    OutgoingMessage(
-                      size: size,
-                      mssg: "Tenemos que entregar el trabajo hoy",
-                    ),
-                    SizedBox(height: size.height * 0.017),
-                    IncomingMessage(size: size, mssg: "Lo tengo casi listo"),
-                    Spacer(),
+              child:
+                  chatDetailProvider.isLoadingMessages &&
+                          chatDetailProvider.messages.isEmpty
+                      ? const Center(child: CircularProgressIndicator())
+                      : chatDetailProvider.errorMessage != null &&
+                          chatDetailProvider.messages.isEmpty
+                      ? Center(
+                        child: Text(
+                          "Error: ${chatDetailProvider.errorMessage}",
+                        ),
+                      )
+                      : chatDetailProvider.messages.isEmpty
+                      ? const Center(
+                        child: Text("No hay mensajes aún. ¡Saluda! 👋"),
+                      )
+                      : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(10.0),
+                        itemCount: chatDetailProvider.messages.length,
+                        itemBuilder: (context, index) {
+                          final message = chatDetailProvider.messages[index];
+                          final bool isMe = message.senderId == authUserId;
+                          if (isMe) {
+                            return OutgoingMessageBubble(message: message);
+                          } else {
+                            return IncomingMessageBubble(message: message);
+                          }
+                        },
+                      ),
+            ),
+            // --- BARRA DE ENTRADA DE MENSAJE ---
+            Padding(
+              padding: const EdgeInsets.all(8.0).copyWith(
+                bottom: MediaQuery.of(context).padding.bottom + 8.0,
+              ), // Padding para el notch/gestos
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      decoration: InputDecoration(
+                        hintText: "Escribe un mensaje...",
 
-                    // Barra enviar mensajes
-                    SafeArea(
-                      child: Material(
-                        elevation: 5,
-                        borderRadius: BorderRadius.circular(30),
-                        child: Container(
-                          padding: EdgeInsets.only(
-                            left: size.width * 0.04,
-                            right: size.width * 0.03,
-                            top: size.width * 0.02,
-                            bottom: size.width * 0.02,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Color.fromARGB(255, 235, 236, 238),
-                            borderRadius: BorderRadius.circular(30),
-                            //border: Border.all(color:Colors.grey)
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  //textAlignVertical: TextAlignVertical.center,
-                                  decoration: InputDecoration(
-                                    border: InputBorder.none,
-                                    hintText: "Type a message",
-                                    hintStyle: TextStyle(color: Colors.black45),
-                                    contentPadding: EdgeInsets.symmetric(
-                                      vertical: size.height * 0.01,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color:  Color.fromARGB(255, 228, 215, 231),
-                                  borderRadius: BorderRadius.circular(60),
-                                ),
-                                child: Icon(Icons.send, color:  Color(0Xffc199cd)),
-                              ),
-                            ],
-                          ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(25.0),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
                         ),
                       ),
+                      onSubmitted:
+                          (_) =>
+                              _sendMessage(), // Enviar con la tecla Enter del teclado
+                      textCapitalization: TextCapitalization.sentences,
+                      minLines: 1,
+                      maxLines: 5, 
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 8),
+                  FloatingActionButton(
+                    mini: true, 
+                    onPressed:
+                        chatDetailProvider.isSendingMessage
+                            ? null
+                            : _sendMessage, 
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    elevation: 2,
+                    child:
+                        chatDetailProvider.isSendingMessage
+                            ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : const Icon(
+                              Icons.send,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -130,6 +255,3 @@ class _ChatState extends State<Chat> {
     );
   }
 }
-
-
-

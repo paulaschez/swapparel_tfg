@@ -1,11 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swapparel/core/utils/responsive_utils.dart';
 import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import '../../../../../app/config/routes/app_routes.dart';
 import '../provider/chat_list_provider.dart';
 import '../../../../match/data/models/match_model.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Para avatares
@@ -21,8 +19,7 @@ class ChatListScreen extends StatefulWidget {
 class _ChatListScreenState extends State<ChatListScreen> {
   @override
   void initState() {
-    super
-        .initState(); // Al ser ChangeNotifierProxyProvider ya se llama a _loadOrClearConversations
+    super.initState();
   }
 
   @override
@@ -68,14 +65,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
             color: AppColors.primaryGreen,
           ),
       itemBuilder: (context, index) {
-        final MatchModel conversation =
-            chatListProvider
-                .conversations[index]; // TODO: Cambiar a ConversationModel
+        final MatchModel conversation = chatListProvider.conversations[index];
+        final String? currentUserId = authProvider.currentUserId;
+
         String otherUserId = '';
         if (conversation.participantIds.length == 2 &&
-            authProvider.currentUserId != null) {
+            currentUserId != null) {
           otherUserId = conversation.participantIds.firstWhere(
-            (id) => id != authProvider.currentUserId,
+            (id) => id != currentUserId,
             orElse: () => '',
           );
         }
@@ -107,9 +104,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 ) // Configura el locale
                 : "Ahora";
 
-        // TODO: Implementar lógica de unreadCount para el usuario actual en este chat
-        final int unreadCountForThisChat =
-            conversation.unreadCounts[authProvider.currentUserId] ?? 0;
+        int unreadCountForThisChat = 0;
+
+        if (currentUserId != null &&
+            conversation.unreadCounts.containsKey(currentUserId)) {
+          unreadCountForThisChat = conversation.unreadCounts[currentUserId]!;
+        }
         final bool hasUnread = unreadCountForThisChat > 0;
 
         return ListTile(
@@ -186,9 +186,40 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ),
           onTap: () {
             print("Navegando al chat con ID: ${conversation.id}");
+
+            // Determinar los datos del OTRO participante
+            String otherUserId = '';
+            String otherUserName = "Usuario del Chat"; // Fallback
+            String? otherUserPhotoUrl; // Fallback
+
+            if (conversation.participantIds.length == 2 &&
+                authProvider.currentUserId != null) {
+              otherUserId = conversation.participantIds.firstWhere(
+                (id) => id != authProvider.currentUserId,
+                orElse: () => '',
+              );
+            }
+
+            if (otherUserId.isNotEmpty &&
+                conversation.participantDetails != null &&
+                conversation.participantDetails!.containsKey(otherUserId)) {
+              otherUserName =
+                  conversation.participantDetails![otherUserId]!['name'] ??
+                  otherUserName;
+              otherUserPhotoUrl =
+                  conversation.participantDetails![otherUserId]!['photoUrl'];
+            }
+
+            // Navegar a ChatScreen pasando los datos del otro usuario
             context.pushNamed(
-              'chatConversation', // Asume que 'chatConversation' es el nombre de tu ruta
+              'chatConversation',
               pathParameters: {'chatId': conversation.id},
+              extra: {
+                // Pasa un Map como extra
+                'otherUserName': otherUserName,
+                'otherUserPhotoUrl': otherUserPhotoUrl,
+                'otherUserId': otherUserId, // También útil para el ChatScreen
+              },
             );
           },
         );
