@@ -46,6 +46,7 @@ class FeedRepositoryImpl implements FeedRepository {
             'ownerId',
             isNotEqualTo: currentUserId,
           ) // No mostrar las prendas propias del usuario
+          .where('isAvailable', isEqualTo: true)
           .orderBy('ownerId')
           .orderBy(
             'createdAt',

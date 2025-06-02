@@ -1,19 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+enum MatchStatus { active, offerMade, completed }
+
 class MatchModel {
   final String id; // ID del documento de match en Firestore
   final List<String>
   participantIds; // Lista con los dos UserIDs [userId1, userId2]
   final Map<String, String>
-  matchedItems; // Opcional: { userId1: garmentIdDe1, userId2: garmentIdDe2 }
-  // Para saber qué prendas específicas iniciaron el match,
-  // aunque el chat podría ser genérico entre los usuarios.
+  matchedItems; //{ userId1: garmentIdDe1, userId2: garmentIdDe2 }
   final Timestamp createdAt;
   final Timestamp?
   lastActivityAt; // Para ordenar chats/matches por actividad reciente
   final Map<String, int> unreadCounts;
   final String? lastMessageSnippet;
   final Map<String, Map<String, String?>>? participantDetails;
+  final MatchStatus matchStatus;
+  final String?
+  offerIdThatCompletedMatch; // ID de la oferta que completó este match
+  final Map<String, bool> hasUserRated; // { userId: true/false }
 
   MatchModel({
     required this.id,
@@ -21,55 +25,37 @@ class MatchModel {
     required this.matchedItems,
     required this.createdAt,
     this.lastActivityAt,
-    this.lastMessageSnippet, // Asegúrate de que este campo exista
-    this.unreadCounts = const {}, // Valor por defecto: mapa vacío
+    this.lastMessageSnippet,
+    this.unreadCounts = const {},
+    this.matchStatus = MatchStatus.active,
     this.participantDetails,
+    this.offerIdThatCompletedMatch,
+    this.hasUserRated = const {},
   }) {
     participantIds.sort();
   }
 
   factory MatchModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
-
-    // --- Conversión para matchedItems ---
-    Map<String, String> tempMatchedItems = {};
-    if (data['matchedItems'] != null && data['matchedItems'] is Map) {
-      (data['matchedItems'] as Map).forEach((key, value) {
-        if (key is String && value is String) {
-          // Asegurarse de los tipos
-          tempMatchedItems[key] = value;
-        }
-      });
-    }
-
-    // --- Conversión para participantDetails ---
-    Map<String, Map<String, String?>> tempParticipantDetails = {};
-    if (data['participantDetails'] != null &&
-        data['participantDetails'] is Map) {
-      (data['participantDetails'] as Map).forEach((userIdKey, userDetailsMap) {
-        if (userIdKey is String && userDetailsMap is Map) {
-          Map<String, String?> details = {};
-          // Iterar sobre el mapa interno de detalles del participante
-          (userDetailsMap).forEach((detailKey, detailValue) {
-            if (detailKey is String) {
-              // El valor puede ser String o null
-              details[detailKey] = detailValue as String?;
-            }
-          });
-          tempParticipantDetails[userIdKey] = details;
-        }
-      });
-    }
     return MatchModel(
       id: doc.id,
       participantIds: List<String>.from(data['participantIds'] ?? []),
-      // Convertir el Map de Firestore a Map<String, String>
-      matchedItems: tempMatchedItems,
+      matchedItems: Map<String, String>.from(data['matchedItems'] ?? {}),
       createdAt: data['createdAt'] ?? Timestamp.now(),
       lastActivityAt: data['lastActivityAt'],
-      lastMessageSnippet: data['lastMessageSnippet'] ?? '',
+      lastMessageSnippet: data['lastMessageSnippet'],
       unreadCounts: Map<String, int>.from(data['unreadCounts'] ?? {}),
-      participantDetails: tempParticipantDetails,
+      participantDetails: (data['participantDetails'] as Map<String, dynamic>?)
+          ?.map(
+            (key, value) =>
+                MapEntry(key, Map<String, String?>.from(value as Map)),
+          ),
+      matchStatus: MatchStatus.values.firstWhere(
+        (e) => e.toString() == data['matchStatus'],
+        orElse: () => MatchStatus.active,
+      ),
+      offerIdThatCompletedMatch: data['offerIdThatCompletedMatch'],
+      hasUserRated: Map<String, bool>.from(data['hasUserRated'] ?? {}),
     );
   }
 
@@ -83,7 +69,45 @@ class MatchModel {
       'lastMessageSnippet': lastMessageSnippet,
       'unreadCounts': unreadCounts,
       'participantDetails': participantDetails,
+      'matchStatus': matchStatus.toString(),
+      'offerIdThatCompletedMatch': offerIdThatCompletedMatch,
+      'hasUserRated': hasUserRated,
     };
+  }
+
+  MatchModel copyWith({
+    String? id,
+    List<String>? participantIds,
+    Map<String, String>? matchedItems,
+    Timestamp? createdAt,
+    Timestamp?
+    lastActivityAt, 
+    Map<String, int>? unreadCounts,
+    String? lastMessageSnippet, 
+    Map<String, Map<String, String?>>? participantDetails, 
+    MatchStatus? matchStatus,
+    String? offerIdThatCompletedMatch, 
+    Map<String, bool>? hasUserRated,
+  }) {
+
+    List<String>? sortedParticipantIds =
+        participantIds != null ? (List.from(participantIds)..sort()) : null;
+
+    return MatchModel(
+      id: id ?? this.id,
+      participantIds:
+          participantIds ?? sortedParticipantIds ?? this.participantIds,
+      matchedItems: matchedItems ?? this.matchedItems,
+      createdAt: createdAt ?? this.createdAt,
+      lastActivityAt: lastActivityAt ?? this.lastActivityAt,
+      unreadCounts: unreadCounts ?? this.unreadCounts,
+      lastMessageSnippet: lastMessageSnippet ?? this.lastMessageSnippet,
+      participantDetails: participantDetails ?? this.participantDetails,
+      matchStatus: matchStatus ?? this.matchStatus,
+      offerIdThatCompletedMatch:
+          offerIdThatCompletedMatch ?? this.offerIdThatCompletedMatch,
+      hasUserRated: hasUserRated ?? this.hasUserRated,
+    );
   }
 
   // Helper para generar un ID de documento de match consistente si no usas auto-ID

@@ -14,6 +14,13 @@ abstract class MatchRepository {
 
   // Obtiene los matches/conversaciones de un usuario
   Stream<List<MatchModel>> getMyMatches(String userId);
+
+  Future<MatchModel?> getMatchById(String matchId);
+
+  Future<void> updateMatchFields(
+    String matchId,
+    Map<String, dynamic> dataToUpdate,
+  );
 }
 
 class MatchRepositoryImpl implements MatchRepository {
@@ -33,7 +40,6 @@ class MatchRepositoryImpl implements MatchRepository {
     );
     try {
       // 1. Comprobar si YA EXISTE un match entre estos dos usuarios (para evitar duplicados)
-      //    El ID del match es user1Id_user2Id (ordenados alfabéticamente)
       List<String> sortedParticipantIds = [likerUserId, likedGarmentOwnerId]
         ..sort();
       String potentialMatchDocId = sortedParticipantIds.join('_');
@@ -54,9 +60,17 @@ class MatchRepositoryImpl implements MatchRepository {
         print(
           "MatchRepo DEBUG: Match already exists. Returning existing match.",
         );
-        return MatchModel.fromFirestore(
+
+        final matchFetched = MatchModel.fromFirestore(
           existingMatchSnapshot as DocumentSnapshot<Map<String, dynamic>>,
         );
+
+        if (matchFetched.matchStatus == MatchStatus.completed) {
+          updateMatchFields(existingMatchSnapshot.id, {
+            'matchStatus': MatchStatus.active.toString(),
+          });
+        }
+        return matchFetched;
       }
 
       // 2. Buscar si `likedGarmentOwnerId` ha dado like a ALGUNA prenda de `likerUserId`
@@ -146,6 +160,7 @@ class MatchRepositoryImpl implements MatchRepository {
           createdAt: now,
           lastActivityAt: now,
           lastMessageSnippet: "¡Han hecho match! Inicia la conversación.",
+
         );
         print(
           "MatchRepo DEBUG: Attempting to CREATE new match document: /matches/${newMatch.id}",
@@ -162,7 +177,6 @@ class MatchRepositoryImpl implements MatchRepository {
 
         return null; // No hay match (aún)
       }
-      //TODO: Hacer transaccion??
     } catch (e) {
       print(
         "MatchRepo CATCH Error - checkForAndCreateMatch: $e",
@@ -173,30 +187,87 @@ class MatchRepositoryImpl implements MatchRepository {
 
   @override
   Stream<List<MatchModel>> getMyMatches(String userId) {
-    // <--- IMPLEMENTAR STREAM
-    if (userId.isEmpty) return Stream.value([]);
+    print("MatchRepository: getMyMatches CALLED for userId: '$userId'");
+    if (userId.isEmpty) {
+      print(
+        "MatchRepository: getMyMatches - userId is empty, returning empty stream.",
+      );
+
+      return Stream.value([]);
+    }
     try {
-      return _firestore
+      final query = _firestore
           .collection(matchesCollection)
           .where('participantIds', arrayContains: userId)
           .orderBy(
             'lastActivityAt',
             descending: true,
-          ) // Ordenar por la última actividad
-          .snapshots() 
-          .map(
-            (snapshot) =>
-                snapshot.docs
-                    .map(
-                      (doc) => MatchModel.fromFirestore(
-                        doc as DocumentSnapshot<Map<String, dynamic>>,
-                      ),
-                    )
-                    .toList(),
-          );
+          ); // Ordenar por la última actividad
+
+      print(
+        "MatchRepository: getMyMatches - Querying for matches with participantId: '$userId'",
+      );
+
+      return query.snapshots().map((snapshot) {
+        print(
+          "MatchRepository: getMyMatches - Firestore Snapshot for userId '$userId' RECIBIÓ ${snapshot.docs.length} match documents.",
+        );
+        return snapshot.docs
+            .map(
+              (doc) => MatchModel.fromFirestore(
+                doc as DocumentSnapshot<Map<String, dynamic>>,
+              ),
+            )
+            .toList();
+      });
     } catch (e) {
       print("MatchRepo Error - getMyMatchesStream: $e");
       return Stream.error(Exception("Failed to get matches stream."));
+    }
+  }
+
+  @override
+  Future<MatchModel?> getMatchById(String matchId) async {
+    if (matchId.isEmpty) return null;
+    try {
+      final querySnapshot =
+          await _firestore.collection(matchesCollection).doc(matchId).get();
+      final MatchModel? matchModel =
+          querySnapshot.exists ? MatchModel.fromFirestore(querySnapshot) : null;
+      return matchModel;
+    } catch (e) {
+      print("MatchRepo Error - getMatchById: $e");
+      throw Exception("Failed to get match.");
+    }
+  }
+
+  @override
+  Future<void> updateMatchFields(
+    String matchId,
+    Map<String, dynamic> dataToUpdate,
+  ) async {
+    if (matchId.isEmpty || dataToUpdate.isEmpty) {
+      print(
+        "MatchRepo: updateMatchFields - matchId or dataToUpdate is empty. Skipping.",
+      );
+      return;
+    }
+    try {
+      // Siempre es buena idea actualizar la última actividad si se modifica el match
+      final Map<String, dynamic> finalData = Map.from(
+        dataToUpdate,
+      ); // Copia para no modificar el original
+      finalData['lastActivityAt'] = FieldValue.serverTimestamp();
+
+      print("MatchRepo: Updating match $matchId with fields: $finalData");
+      await _firestore
+          .collection(matchesCollection)
+          .doc(matchId)
+          .update(finalData);
+      print("MatchRepo: Match $matchId fields updated successfully.");
+    } catch (e) {
+      print("MatchRepo Error - updateMatchFields for $matchId: $e");
+      throw Exception("Failed to update match fields.");
     }
   }
 }
