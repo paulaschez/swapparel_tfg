@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:swapparel/features/garment/presentation/screens/add_edit_garment_screen.dart';
 import 'package:swapparel/features/garment/presentation/screens/garment_detail_screen.dart';
 import 'package:swapparel/features/inbox/chat/presentation/screens/chat_screen.dart';
+import 'package:swapparel/features/offer/presentation/screens/create_offer_screen.dart';
 import 'package:swapparel/features/profile/presentation/screens/profile_screen.dart';
 
 import '../../../features/auth/presentation/provider/auth_provider.dart';
@@ -11,7 +12,6 @@ import '../../../features/auth/presentation/screens/register_screen.dart';
 import '../../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../presentation/main_app_screen.dart';
 import '../../../features/profile/presentation/screens/edit_profile_screen.dart';
-// TODO: Importar el resto de pantallas (cuando las tenga)
 
 import 'app_routes.dart';
 
@@ -129,16 +129,36 @@ class AppRouter {
         builder: (context, state) {
           final String chatId = state.pathParameters['chatId']!;
           final Map<String, dynamic>? extraData =
-              state.extra as Map<String, dynamic>?; 
+              state.extra as Map<String, dynamic>?;
 
           return ChatScreen(
             chatId: chatId,
 
             otherUserName: extraData?['otherUserName'] as String? ?? "Chat",
             otherUserPhotoUrl: extraData?['otherUserPhotoUrl'] as String?,
-            otherUserId:
-                extraData?['otherUserId']
-                    as String?, 
+            otherUserId: extraData?['otherUserId'] as String?,
+          );
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.createOffer,
+        name: 'createOffer',
+        builder: (context, state) {
+          final String matchId = state.pathParameters['matchId']!;
+          final Map<String, dynamic>? extraData =
+              state.extra as Map<String, dynamic>?;
+          final String offeringUserId = extraData?['offeringUserId'] as String;
+          final String receivingUserId =
+              extraData?['receivingUserId'] as String;
+          final String? receivingUsername =
+              extraData?['receivingUsername'] as String?;
+
+          return CreateOfferScreen(
+            matchId: matchId,
+            offeringUserId: offeringUserId,
+            receivingUserId: receivingUserId,
+            receivingUsername:
+                receivingUsername ?? "Usuario", // Fallback si es null
           );
         },
       ),

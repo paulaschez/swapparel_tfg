@@ -6,4 +6,5 @@ const String dislikedGarmentsCollection = "myDislikedGarments";
 const String matchesCollection = "matches";
 const String notificationsCollection = "notifications";
 const String messagesCollection = "messages";
+const String offersCollection = "offers";
 
