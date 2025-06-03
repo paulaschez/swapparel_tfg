@@ -14,13 +14,15 @@ abstract class MatchRepository {
 
   // Obtiene los matches/conversaciones de un usuario
   Stream<List<MatchModel>> getMyMatches(String userId);
+  Stream<MatchModel?> getMatchStream(String matchId);
 
   Future<MatchModel?> getMatchById(String matchId);
 
   Future<void> updateMatchFields(
     String matchId,
-    Map<String, dynamic> dataToUpdate,
-  );
+    Map<String, dynamic> dataToUpdate, {
+    Transaction? transaction,
+  });
 }
 
 class MatchRepositoryImpl implements MatchRepository {
@@ -160,7 +162,6 @@ class MatchRepositoryImpl implements MatchRepository {
           createdAt: now,
           lastActivityAt: now,
           lastMessageSnippet: "¡Han hecho match! Inicia la conversación.",
-
         );
         print(
           "MatchRepo DEBUG: Attempting to CREATE new match document: /matches/${newMatch.id}",
@@ -226,6 +227,63 @@ class MatchRepositoryImpl implements MatchRepository {
     }
   }
 
+@override
+  Stream<MatchModel?> getMatchStream(String matchId) {
+    print("MatchRepository: getMatchStream CALLED for matchId: '$matchId'");
+    if (matchId.isEmpty) {
+      print(
+        "MatchRepository: getMatchStream - matchId is empty, returning empty stream.",
+      );
+
+      return Stream.value(null);
+    }
+    try {
+      // 1. Obtener el Stream de DocumentSnapshots
+      Stream<DocumentSnapshot<Map<String, dynamic>>> documentStream =
+          _firestore
+              .collection(matchesCollection)
+              .doc(matchId)
+              .snapshots()
+              .cast<DocumentSnapshot<Map<String, dynamic>>>();
+
+      // 2. Mapear cada DocumentSnapshot a un MatchModel?
+      return documentStream
+          .map((snapshot) {
+            if (snapshot.exists && snapshot.data() != null) {
+              print(
+                "MatchRepository: getMatchStream - Snapshot received for '$matchId'. Exists: true, Data: ${snapshot.data()}",
+              );
+              try {
+                return MatchModel.fromFirestore(snapshot);
+              } catch (e) {
+                print(
+                  "MatchRepository: getMatchStream - Error parsing MatchModel for '$matchId': $e. Snapshot data: ${snapshot.data()}",
+                );
+                return null;
+              }
+            } else {
+              print(
+                "MatchRepository: getMatchStream - Snapshot received for '$matchId'. Document does not exist or data is null.",
+              );
+              return null;
+            }
+          })
+          .handleError((error) {
+            print(
+              "MatchRepository: getMatchStream - ERROR in stream for '$matchId': $error",
+            );
+            throw Exception("Stream error for match $matchId: $error");
+          });
+    } catch (e) {
+      print(
+        "MatchRepository: getMatchStream - FATAL ERROR setting up stream for '$matchId': $e",
+      );
+      return Stream.error(
+        Exception("Failed to set up stream for match $matchId: $e"),
+      );
+    }
+  }
+
   @override
   Future<MatchModel?> getMatchById(String matchId) async {
     if (matchId.isEmpty) return null;
@@ -244,30 +302,42 @@ class MatchRepositoryImpl implements MatchRepository {
   @override
   Future<void> updateMatchFields(
     String matchId,
-    Map<String, dynamic> dataToUpdate,
-  ) async {
+    Map<String, dynamic> dataToUpdate, {
+    Transaction? transaction,
+  }) async {
     if (matchId.isEmpty || dataToUpdate.isEmpty) {
       print(
         "MatchRepo: updateMatchFields - matchId or dataToUpdate is empty. Skipping.",
       );
       return;
     }
-    try {
-      // Siempre es buena idea actualizar la última actividad si se modifica el match
-      final Map<String, dynamic> finalData = Map.from(
-        dataToUpdate,
-      ); // Copia para no modificar el original
-      finalData['lastActivityAt'] = FieldValue.serverTimestamp();
 
-      print("MatchRepo: Updating match $matchId with fields: $finalData");
-      await _firestore
-          .collection(matchesCollection)
-          .doc(matchId)
-          .update(finalData);
-      print("MatchRepo: Match $matchId fields updated successfully.");
+    final docRef = _firestore.collection(matchesCollection).doc(matchId);
+    final Map<String, dynamic> finalData = Map.from(dataToUpdate);
+
+    finalData['lastActivityAt'] = FieldValue.serverTimestamp();
+
+    print(
+      "MatchRepo: Updating match $matchId with fields: $finalData (Transaction: ${transaction != null})",
+    );
+
+    try {
+      if (transaction != null) {
+        // Si se pasa una transacción se hace
+        transaction.update(docRef, finalData);
+        print(
+          "MatchRepo: Match $matchId fields updated successfully via transaction.",
+        );
+      } else {
+        // Si no, se hace una actualización normal
+        await docRef.update(finalData);
+        print(
+          "MatchRepo: Match $matchId fields updated successfully (direct update).",
+        );
+      }
     } catch (e) {
       print("MatchRepo Error - updateMatchFields for $matchId: $e");
-      throw Exception("Failed to update match fields.");
+      throw Exception("Failed to update match fields for $matchId.");
     }
   }
 }

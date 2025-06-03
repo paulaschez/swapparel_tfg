@@ -119,10 +119,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final String username = userProfile?.username ?? "@usuario";
     final String photoUrl = userProfile?.photoUrl ?? '';
 
-    // TODO: Obtener swapCount y ratingCount del userProfile o calcularlos
+    final int swapCount = userProfile?.swapCount ?? 0;
+    final int ratingCount = userProfile?.numberOfRatings ?? 0;
+    final double averageRating =
+        userProfile?.averageRating ?? 0.0; 
 
-    const int swapCount = 0;
-    const int ratingCount = 0;
     final List<GarmentModel> garments = profileProvider.viewedUserGarments;
 
     return Scaffold(
@@ -225,7 +226,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         backgroundColor: Colors.grey[300],
                         backgroundImage:
                             (photoUrl.isNotEmpty)
-                                //TODO: desplegar a firebase hosting??
                                 ? CachedNetworkImageProvider(photoUrl)
                                 : null,
                         onBackgroundImageError:
@@ -275,6 +275,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         textAlign: TextAlign.center,
                       ),
                       SizedBox(height: largeVerticalSpacing),
+
+                      // --- MOSTRAR ESTRELLAS DE VALORACIÓN ---
+                      if (ratingCount > 0) // Solo mostrar si hay valoraciones
+                        Padding(
+                          padding: EdgeInsets.only(bottom: verticalSpacing),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.star,
+                                color: Colors.amber,
+                                size: ResponsiveUtils.fontSize(
+                                  context,
+                                  baseSize: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                averageRating.toStringAsFixed(
+                                  1,
+                                ), // Mostrar con 1 decimal
+                                style: TextStyle(
+                                  fontSize: ResponsiveUtils.fontSize(
+                                    context,
+                                    baseSize: 16,
+                                  ),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "($ratingCount ${ratingCount == 1 ? 'valoración' : 'valoraciones'})",
+                                style: TextStyle(
+                                  fontSize: ResponsiveUtils.fontSize(
+                                    context,
+                                    baseSize: 14,
+                                  ),
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (ratingCount == 0)
+                        Padding(
+                          padding: EdgeInsets.only(bottom: verticalSpacing),
+                          child: Text(
+                            "Sin valoraciones aún",
+                            style: TextStyle(
+                              fontSize: ResponsiveUtils.fontSize(
+                                context,
+                                baseSize: 14,
+                              ),
+                              color: Colors.grey[600],
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+
                       const Divider(),
                       Padding(
                         padding: EdgeInsets.symmetric(

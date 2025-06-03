@@ -21,6 +21,9 @@ abstract class GarmentRepository {
   );
   Future<void> deleteGarment(String garmentId, List<String> imageUrls);
   Future<void> deleteSpecificGarmentImages(List<String> imageUrlsToDelete);
+  Future<void> updateGarmentAvailability(String garmentId, bool isAvailable);
+
+  Future<List<GarmentModel>> getMultipleGarmentsByIds(List<String> garmentIds);
 }
 
 class GarmentRepositoryImpl implements GarmentRepository {
@@ -251,6 +254,98 @@ class GarmentRepositoryImpl implements GarmentRepository {
       throw Exception(
         "No se pudieron obtener referencias válidas para ninguna de las imágenes a eliminar.",
       );
+    }
+  }
+
+  @override
+  Future<void> updateGarmentAvailability(
+    String garmentId,
+    bool isAvailable,
+  ) async {
+    if (garmentId.isEmpty) {
+      throw ArgumentError(
+        "Garment ID cannot be empty when updating availability.",
+      );
+    }
+    try {
+      print(
+        "GarmentRepo: Actualizando disponibilidad de $garmentId a $isAvailable",
+      );
+      await _firestore.collection(garmentsCollection).doc(garmentId).update({
+        'isAvailable': isAvailable,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      print(
+        "GarmentRepo: OK - Availability para $garmentId ahora es $isAvailable",
+      );
+    } catch (e) {
+      print("GarmentRepo Error - updateGarmentAvailability en $garmentId: $e");
+      throw Exception("Failed to update garment availability.");
+    }
+  }
+
+  @override
+  Future<List<GarmentModel>> getMultipleGarmentsByIds(
+    List<String> garmentIds,
+  ) async {
+    if (garmentIds.isEmpty) {
+      return []; // No hay IDs, no hay nada que buscar
+    }
+
+    List<GarmentModel> fetchedGarments = [];
+    // Firestore limita las consultas 'IN' a un máximo de 30 valores (anteriormente 10).
+    // Es más seguro usar el límite más restrictivo si no estás seguro de la versión o para
+    // futuras compatibilidades, o simplemente dividir en lotes más pequeños.
+    // El límite actual es 30 para 'in', 'not-in', y 'array-contains-any'.
+    const int firestoreQueryLimit = 30;
+    List<List<String>> idChunks = [];
+
+    for (var i = 0; i < garmentIds.length; i += firestoreQueryLimit) {
+      idChunks.add(
+        garmentIds.sublist(
+          i,
+          i + firestoreQueryLimit > garmentIds.length
+              ? garmentIds.length
+              : i + firestoreQueryLimit,
+        ),
+      );
+    }
+
+    try {
+      for (final chunk in idChunks) {
+        if (chunk.isEmpty)
+          continue; // Saltar chunks vacíos (no debería pasar con la lógica anterior)
+
+        print("GarmentRepo: Fetching chunk of garments by IDs: $chunk");
+        final QuerySnapshot querySnapshot =
+            await _firestore
+                .collection(garmentsCollection)
+                .where(
+                  FieldPath.documentId,
+                  whereIn: chunk,
+                ) // Busca documentos cuyo ID esté en la lista 'chunk'
+                .get();
+
+        for (var doc in querySnapshot.docs) {
+          if (doc.exists && doc.data() != null) {
+            fetchedGarments.add(
+              GarmentModel.fromFirestore(
+                doc as DocumentSnapshot<Map<String, dynamic>>,
+              ),
+            );
+          }
+        }
+      }
+      print(
+        "GarmentRepo: Fetched ${fetchedGarments.length} garments for ${garmentIds.length} IDs.",
+      );
+      return fetchedGarments;
+    } catch (e) {
+      print("GarmentRepo Error - getMultipleGarmentsByIds: $e");
+      // Devuelve la lista de lo que se pudo obtener, o una lista vacía, o relanza la excepción.
+      // Devolver lo obtenido parcialmente puede ser útil.
+      // throw Exception("Failed to get some garments by IDs.");
+      return fetchedGarments; // O return [] si prefieres fallar completamente.
     }
   }
 }

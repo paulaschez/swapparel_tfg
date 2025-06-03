@@ -66,7 +66,7 @@ class FeedProvider extends ChangeNotifier {
     notifyListeners();
 
     print("FeedProvider: Initializing feed for $currentUserId");
-    _loadUserInteractions();
+    await _loadUserInteractions();
     print(
       "FeedProvider: User interactions loaded. Liked: ${_likedGarmentIds.length}, Disliked: ${_dislikedGarmentIds.length}",
     );

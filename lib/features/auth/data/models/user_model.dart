@@ -9,11 +9,9 @@ class UserModel {
   String? photoUrl; // URL de la foto de perfil
   String? location; // Ubicacion
   Timestamp createdAt; // Cuando se creo el perfil
-  final int successfulSwaps; // Número de intercambios completados
-  final int ratingCount;     // Número total de valoraciones recibidas
-  final double averageRating;  // Promedio de valoración (ej: de 0 a 5)
-
-
+  final int swapCount; // Número de intercambios completados
+  final int numberOfRatings; // Número total de valoraciones recibidas
+  final double? totalRatingStars; // Estrellas totales
   UserModel({
     required this.id,
     required this.email,
@@ -22,12 +20,12 @@ class UserModel {
     this.location,
     this.photoUrl,
     required this.createdAt,
-    this.successfulSwaps = 0, // Valor por defecto
-    this.ratingCount = 0,     // Valor por defecto
-    this.averageRating = 0.0, // Valor por defecto
+    this.swapCount = 0, // Valor por defecto
+    this.numberOfRatings = 0, // Valor por defecto
+    this.totalRatingStars, // Valor por defecto
   });
 
-   String get displayName => name;
+  String get displayName => name;
   String get atUsernameHandle => '@$username';
 
   // Método para convertir un UserModel a un Map para Firestore
@@ -39,9 +37,9 @@ class UserModel {
       photoUrlField: photoUrl,
       locationField: location,
       createdAtField: createdAt,
-      swapCountField: successfulSwaps,
-      ratingCountField: ratingCount,
-      averageRatingField: averageRating,
+      swapCountField: swapCount,
+      numberOfRatingsField: numberOfRatings,
+      totalRatingStarsField: totalRatingStars,
     };
   }
 
@@ -51,6 +49,21 @@ class UserModel {
     if (data == null) {
       throw StateError('Missing data for UserModel id: ${doc.id}');
     }
+    print('UserModel.fromFirestore - Data for ${doc.id}:');
+    print('email: ${data[emailField]} (${data[emailField]?.runtimeType})');
+    print('name: ${data[nameField]} (${data[nameField]?.runtimeType})');
+    print(
+      'createdAt: ${data[createdAtField]} (${data[createdAtField]?.runtimeType})',
+    );
+    print(
+      'swapCount: ${data[swapCountField]} (${data[swapCountField]?.runtimeType})',
+    );
+    print(
+      'totalRatingStars: ${data[totalRatingStarsField]} (${data[totalRatingStarsField]?.runtimeType})',
+    );
+    print(
+      'numberOfRatings: ${data[numberOfRatingsField]} (${data[numberOfRatingsField]?.runtimeType})',
+    );
 
     return UserModel(
       id: doc.id,
@@ -60,9 +73,18 @@ class UserModel {
       photoUrl: data[photoUrlField],
       createdAt: data[createdAtField],
       location: data[locationField],
-      successfulSwaps: data[swapCountField] ?? 0, 
-      ratingCount: data[ratingCountField] ?? 0, 
-      averageRating: (data[averageRatingField] ?? 0.0).toDouble()
+      swapCount: data[swapCountField] ?? 0,
+      totalRatingStars: data[totalRatingStarsField] ?? 0.0,
+      numberOfRatings: data[numberOfRatingsField] ?? 0,
     );
   }
+
+  // Getter para la media de valoración
+  double get averageRating {
+    if (numberOfRatings == 0) {
+      return 0.0;
+    }
+    return totalRatingStars! / numberOfRatings; // double / int da double
+  }
 }
+ 
