@@ -524,7 +524,7 @@ class _GarmentDetailScreenState extends State<GarmentDetailScreen> {
                       ),
                       GestureDetector(
                         onTap:
-                            () => context.goNamed(
+                            () => context.pushNamed(
                               'profile',
                               pathParameters: {'userId': garment.ownerId},
                             ),

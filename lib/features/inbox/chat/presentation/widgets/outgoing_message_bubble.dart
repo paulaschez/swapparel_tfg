@@ -13,17 +13,14 @@ class OutgoingMessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    // Máximo ancho de la burbuja (ej: 70-75% del ancho de pantalla)
     final double bubbleMaxWidth = screenSize.width * 0.75;
 
     return Align(
-      alignment: Alignment.centerRight, // Alinea la burbuja a la derecha
+      alignment: Alignment.centerRight, 
       child: Container(
         constraints: BoxConstraints(maxWidth: bubbleMaxWidth), // Limita el ancho
         margin: EdgeInsets.only(
-          top: ResponsiveUtils.fontSize(context, baseSize: 4, maxSize: 6),
-          bottom: ResponsiveUtils.fontSize(context, baseSize: 4, maxSize: 6),
-          left: screenSize.width * 0.15, // Margen izquierdo para empujarlo
+          left: screenSize.width * 0.15, 
           right: ResponsiveUtils.fontSize(context, baseSize: 8, maxSize: 10),
         ),
         padding: EdgeInsets.symmetric(
@@ -31,7 +28,7 @@ class OutgoingMessageBubble extends StatelessWidget {
           vertical: ResponsiveUtils.fontSize(context, baseSize: 8, maxSize: 10),
         ),
         decoration: BoxDecoration(
-          color: AppColors.lightGreen, // <--- TU COLOR PARA MENSAJES SALIENTES
+          color: AppColors.lightGreen, 
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(16),
             topRight: Radius.circular(16),
@@ -39,7 +36,7 @@ class OutgoingMessageBubble extends StatelessWidget {
           ),
           boxShadow: [ // Sombra sutil opcional
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha:0.05),
               blurRadius: 3,
               offset: const Offset(1, 1),
             )
@@ -60,7 +57,7 @@ class OutgoingMessageBubble extends StatelessWidget {
             Text(
               DateFormat('HH:mm').format(message.timestamp.toDate()), // Formato HH:mm
               style: TextStyle(
-                color: AppColors.darkGreen.withOpacity(0.7),
+                color: AppColors.darkGreen.withValues(alpha:0.7),
                 fontSize: ResponsiveUtils.fontSize(context, baseSize: 10, maxSize: 12),
               ),
             ),

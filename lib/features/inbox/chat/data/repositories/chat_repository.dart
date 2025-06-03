@@ -37,9 +37,14 @@ class ChatRepositoryImpl implements ChatRepository {
   Stream<List<MessageModel>> getChatMessages({
     required String chatId,
     int limit = 20,
-
   }) {
+    print(
+      "ChatRepository: getChatMessages CALLED for chatId: '$chatId', limit: $limit",
+    );
     if (chatId.isEmpty) {
+      print(
+        "ChatRepository: getChatMessages - chatId is empty, returning empty stream.",
+      );
       return Stream.value([]); // Devuelve stream vacío si no hay chatId
     }
     try {
@@ -54,6 +59,13 @@ class ChatRepositoryImpl implements ChatRepository {
           .limit(limit);
 
       return query.snapshots().map((snapshot) {
+        print(
+          "ChatRepository: getChatMessages - Firestore Snapshot for '$chatId' RECIBIÓ ${snapshot.docs.length} DOCUMENTOS. HasPendingWrites: ${snapshot.metadata.hasPendingWrites}",
+        );
+
+        for (var doc in snapshot.docs) {
+          print("ChatRepository: Doc ID: ${doc.id}, Data: ${doc.data()}");
+        }
         final messages =
             snapshot.docs
                 .map(
@@ -77,6 +89,9 @@ class ChatRepositoryImpl implements ChatRepository {
 
     required String text,
   }) async {
+    print(
+      "ChatRepository: sendMessage CALLED - chatId: $chatId, senderId: $senderId, text: '$text'",
+    );
     if (chatId.isEmpty || senderId.isEmpty || text.trim().isEmpty) {
       print(
         "ChatRepo Warning: sendMessage called with empty chatId, senderId, or text.",
@@ -88,12 +103,16 @@ class ChatRepositoryImpl implements ChatRepository {
           Timestamp.now(); // Usar el mismo timestamp para el mensaje y lastActivity
 
       final messageData = MessageModel(
-        id: '', // Firestore generará el ID para el documento del mensaje
+        id: '',
         chatId: chatId,
         senderId: senderId,
 
         text: text.trim(),
         timestamp: timestamp,
+      );
+
+      print(
+        "ChatRepository: sendMessage - Message data to add: ${messageData.toJson()}",
       );
 
       // Añadir el nuevo mensaje a la subcolección 'messages'
@@ -103,12 +122,25 @@ class ChatRepositoryImpl implements ChatRepository {
           .collection('messages')
           .add(messageData.toJson());
 
+      print(
+        "ChatRepository: sendMessage - Message ADDED to Firestore for chatId: $chatId",
+      );
+
+      print(
+        "ChatRepository: sendMessage - Calling updateChatLastActivity for chatId: $chatId",
+      );
       // Después de enviar el mensaje, actualizar la actividad del chat principal
       await updateChatLastActivity(
         chatId: chatId,
         lastMessageSnippet: text.trim(),
         lastActivityTimestamp: timestamp,
         lastMessageSenderId: senderId,
+      );
+      print(
+        "ChatRepository: sendMessage - updateChatLastActivity COMPLETED for chatId: $chatId",
+      ); // NUEVO PRINT
+      print(
+        "ChatRepo: Message sent and last activity updated for chat $chatId. sendMessage Future should complete.",
       );
       print("ChatRepo: Message sent to chat $chatId");
     } catch (e) {
@@ -124,6 +156,7 @@ class ChatRepositoryImpl implements ChatRepository {
     required Timestamp lastActivityTimestamp,
     String? lastMessageSenderId,
   }) async {
+    print("ChatRepository: updateChatLastActivity CALLED for chatId: $chatId");
     try {
       Map<String, dynamic> updateData = {
         'lastActivityAt': lastActivityTimestamp,
@@ -166,7 +199,9 @@ class ChatRepositoryImpl implements ChatRepository {
           .collection(matchesCollection)
           .doc(chatId)
           .update(updateData);
-      print("ChatRepo: Chat $chatId last activity updated.");
+      print(
+        "ChatRepo: Chat $chatId last activity updated with Firestore. updateChatLastActivity Future should complete.",
+      );
     } catch (e) {
       print("ChatRepo Error - updateChatLastActivity: $e");
     }

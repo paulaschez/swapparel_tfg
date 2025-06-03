@@ -6,16 +6,18 @@ import '../../../../auth/presentation/provider/auth_provider.dart';
 
 class NotificationProvider extends ChangeNotifier {
   final NotificationRepository _notificationRepository;
-  final AuthProviderC _authProvider;
   StreamSubscription? _notificationsSubscription;
+  final String? effectiveUserId;
 
   NotificationProvider({
     required NotificationRepository notificationRepository,
     required AuthProviderC authProvider,
   }) : _notificationRepository = notificationRepository,
-       _authProvider = authProvider {
-    _authProvider.addListener(_onAuthStateChanged);
-    _loadNotificationsForCurrentUser(); 
+       effectiveUserId = authProvider.currentUserId {
+    print(
+      "NotificationProvider: INSTANCE CREATED/UPDATED for user: $effectiveUserId",
+    );
+    _loadNotificationsForCurrentUser();
   }
 
   List<NotificationModel> _notifications = [];
@@ -28,18 +30,21 @@ class NotificationProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   int get unreadCount => _unreadCount;
 
-  void _onAuthStateChanged() {
-    if (_authProvider.isAuthenticated && _authProvider.currentUserId != null) {
-      _loadNotificationsForCurrentUser();
-    } else {
-      _clearNotifications();
-    }
-  }
-
   void _loadNotificationsForCurrentUser() {
-    if (_authProvider.currentUserId == null ||
-        _authProvider.currentUserId!.isEmpty) {
-      _clearNotifications();
+    final userId = effectiveUserId;
+    print(
+      "NotificationProvider: _loadNotificationsForCurrentUser CALLED for effective userId: $userId",
+    );
+    _notificationsSubscription?.cancel(); // Siempre cancela la anterior
+    _notifications = []; // Limpiar siempre al cargar/recargar para un usuario
+    _unreadCount = 0;
+
+    if (userId == null || userId.isEmpty) {
+      print(
+        "NotificationProvider: effectiveUserId is null or empty, clearing notifications and not subscribing.",
+      );
+      _isLoading = false; // Asegúrate de que isLoading se ponga a false
+      notifyListeners();
       return;
     }
 
@@ -47,11 +52,17 @@ class NotificationProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    _notificationsSubscription?.cancel();
+    print(
+      "NotificationProvider: Subscribing to notifications for user $userId",
+    );
+
     _notificationsSubscription = _notificationRepository
-        .getUserNotifications(_authProvider.currentUserId!)
+        .getUserNotifications(effectiveUserId!)
         .listen(
           (notifs) {
+            print(
+              "NotificationProvider: Notifications RECEIVED for user $userId. Count: ${notifs.length}",
+            );
             _notifications = notifs;
             _unreadCount = notifs.where((n) => !n.isRead).length;
             _isLoading = false;
@@ -70,10 +81,10 @@ class NotificationProvider extends ChangeNotifier {
   }
 
   Future<void> markAsRead(String notificationId) async {
-    if (_authProvider.currentUserId == null) return;
+    if (effectiveUserId == null) return;
     try {
       await _notificationRepository.markNotificationAsRead(
-        _authProvider.currentUserId!,
+        effectiveUserId!,
         notificationId,
       );
       final index = _notifications.indexWhere((n) => n.id == notificationId);
@@ -83,15 +94,15 @@ class NotificationProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-       print("NotificationProvider Error - _markAsRead: $e");
+      print("NotificationProvider Error - _markAsRead: $e");
     }
   }
 
   Future<void> markAllAsRead() async {
-    if (_authProvider.currentUserId == null || _unreadCount == 0) return;
+    if (effectiveUserId == null || _unreadCount == 0) return;
     try {
       await _notificationRepository.markAllNotificationsAsRead(
-        _authProvider.currentUserId!,
+        effectiveUserId!,
       );
       for (var notification in _notifications) {
         notification.isRead = true;
@@ -100,23 +111,17 @@ class NotificationProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       print("NotificationProvider Error - _markAllAsRead: $e");
-
     }
   }
 
-  void _clearNotifications() {
-    _notificationsSubscription?.cancel();
-    _notifications = [];
-    _unreadCount = 0;
-    _isLoading = false;
-    _errorMessage = null;
-    notifyListeners();
-  }
 
   @override
   void dispose() {
+    print(
+      "NotificationProvider: DISPOSE CALLED for user: $effectiveUserId. Cancelling subscription.",
+    );
     _notificationsSubscription?.cancel();
-    _authProvider.removeListener(_onAuthStateChanged); 
     super.dispose();
+    print("NotificationProvider: DISPOSE COMPLETED.");
   }
 }

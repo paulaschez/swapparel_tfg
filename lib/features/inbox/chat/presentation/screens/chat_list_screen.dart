@@ -134,7 +134,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 baseSize: 15,
                 maxSize: 17,
               ),
+              
+              
             ),
+            overflow: TextOverflow.ellipsis,
+              maxLines: 1,
           ),
           subtitle: Text(
             lastMessage,

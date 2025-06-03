@@ -10,9 +10,11 @@ import 'package:swapparel/features/garment/presentation/provider/garment_provide
 import 'package:swapparel/features/inbox/chat/data/repositories/chat_repository.dart';
 import 'package:swapparel/features/inbox/chat/presentation/provider/chat_detail_provider.dart';
 import 'package:swapparel/features/inbox/chat/presentation/provider/chat_list_provider.dart';
+import 'package:swapparel/features/offer/presentation/provider/offer_provider.dart';
 import 'package:swapparel/features/match/data/repositories/match_repository.dart';
 import 'package:swapparel/features/inbox/notification/data/repositories/notification_repository.dart';
 import 'package:swapparel/features/inbox/notification/presentation/provider/notification_provider.dart';
+import 'package:swapparel/features/offer/data/repositories/offer_repository.dart';
 import 'package:swapparel/features/profile/data/repositories/profile_repository.dart';
 import 'package:swapparel/features/profile/presentation/provider/profile_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -20,6 +22,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:swapparel/features/rating/data/repositories/rating_repository.dart';
+import 'package:swapparel/features/rating/presentation/provider/rating_provider.dart';
 import 'app/config/theme/app_theme.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'core/services/local_storage_service.dart';
@@ -94,7 +98,26 @@ class MyAppInitializer extends StatelessWidget {
           update:
               (_, firestore, __) => ChatRepositoryImpl(firestore: firestore),
         ),
-
+        ProxyProvider<FirebaseFirestore, OfferRepository>(
+          update:
+              (_, firestore, __) => OfferRepositoryImpl(firestore: firestore),
+        ),
+        ProxyProvider4<
+          FirebaseFirestore,
+          ProfileRepository,
+          MatchRepository,
+          NotificationRepository,
+          RatingRepository
+        >(
+          update:
+              (_, firestore, profileRepo, matchRepo, notifRepo, __) =>
+                  RatingRepositoryImpl(
+                    firestore: firestore,
+                    profileRepository: profileRepo,
+                    matchRepository: matchRepo,
+                    notificationRepository: notifRepo,
+                  ),
+        ),
         // ChangeNotifierProviders
         ChangeNotifierProvider<AuthProviderC>(
           create:
@@ -177,60 +200,234 @@ class MyAppInitializer extends StatelessWidget {
         ),
 
         ChangeNotifierProxyProvider<AuthProviderC, NotificationProvider>(
-          create:
-              (context) => NotificationProvider(
-                notificationRepository: context.read<NotificationRepository>(),
-                authProvider: context.read<AuthProviderC>(),
-              ),
-          update:
-              (context, auth, previous) => NotificationProvider(
-                // Se recrea si auth cambia
+          create: (context) {
+            final auth = context.read<AuthProviderC>();
+            return NotificationProvider(
+              notificationRepository: context.read<NotificationRepository>(),
+              authProvider: auth,
+            );
+          },
+          update: (context, auth, previous) {
+            final newActualUserId = auth.currentUserId;
+
+            print("ProxyProvider for Notification: UPDATE called.");
+            print("  New Auth User ID from auth parameter: $newActualUserId");
+            if (previous != null) {
+              print(
+                "  Previous NotificationProvider was effective for User ID: ${previous.effectiveUserId}",
+              );
+            } else {
+              print("  Previous NotificationProvider instance is null.");
+            }
+
+            if (previous == null ||
+                previous.effectiveUserId != newActualUserId) {
+              print(
+                "  CONDITION MET: Recreating NotificationProvider for actual user: $newActualUserId",
+              );
+              return NotificationProvider(
                 notificationRepository: context.read<NotificationRepository>(),
                 authProvider: auth,
-              ),
+              );
+            }
+
+            print(
+              "  CONDITION NOT MET: Reusing previous NotificationProvider (was effective for ${previous.effectiveUserId}).",
+            );
+            return previous;
+          },
         ),
+
         ChangeNotifierProxyProvider<AuthProviderC, ChatListProvider>(
-          create:
-              (context) => ChatListProvider(
-                matchRepository:
-                    context
-                        .read<
-                          MatchRepository
-                        >(), // Asume que MatchRepo provee la lista de chats
-                authProvider: context.read<AuthProviderC>(),
-              ),
-          update: (context, authProvider, previousChatListProvider) {
-            // Si el usuario cambió (detectado por el UID) o es la primera vez,
-            // crea una NUEVA instancia de ChatListProvider.
-            // Esto llamará al constructor de ChatListProvider, que a su vez llamará a _loadOrClearConversations.
-            if (previousChatListProvider == null ||
-                previousChatListProvider.authProvider.currentUserId !=
-                    authProvider.currentUserId) {
+          create: (context) {
+            final auth = context.read<AuthProviderC>();
+            print(
+              "ProxyProvider for ChatList: CREATING initial instance for effectiveUser: ${auth.currentUserId}",
+            );
+            return ChatListProvider(
+              matchRepository: context.read<MatchRepository>(),
+              authProvider: auth,
+            );
+          },
+          update: (
+            BuildContext context,
+            AuthProviderC auth,
+            ChatListProvider? previous,
+          ) {
+            final newActualUserId = auth.currentUserId;
+
+            print("ProxyProvider for ChatList: UPDATE called.");
+            print("  New Auth User ID from auth parameter: $newActualUserId");
+            if (previous != null) {
               print(
-                "Main.dart: Recreating ChatListProvider for user: ${authProvider.currentUserId}",
+                "  Previous ChatListProvider was effective for User ID: ${previous.effectiveUserId}",
+              );
+            } else {
+              print("  Previous ChatListProvider instance is null.");
+            }
+
+            if (previous == null ||
+                previous.effectiveUserId != newActualUserId) {
+              print(
+                "  CONDITION MET: Recreating ChatListProvider for actual user: $newActualUserId",
               );
               return ChatListProvider(
                 matchRepository: context.read<MatchRepository>(),
-                authProvider: authProvider,
+                authProvider: auth,
               );
             }
-            // Si el usuario no cambió, pero AuthProviderC notificó por otra razón,
-            // reutilizamos la instancia anterior de ChatListProvider para no perder su estado.
-            return previousChatListProvider;
+
+            print(
+              "  CONDITION NOT MET: Reusing previous ChatListProvider (was effective for ${previous.effectiveUserId}).",
+            );
+            return previous;
           },
         ),
-        ChangeNotifierProxyProvider<AuthProviderC, ChatDetailProvider>(
-          create:
-              (context) => ChatDetailProvider(
-                chatRepository: context.read<ChatRepository>(),
-                authProvider: context.read<AuthProviderC>(),
-              ),
-          update:
-              (context, auth, previous) => ChatDetailProvider(
-                // Recrear si auth cambia
+
+        ChangeNotifierProxyProvider3<
+          AuthProviderC,
+          MatchRepository,
+          OfferRepository,
+          ChatDetailProvider
+        >(
+          create: (context) {
+            final auth = context.read<AuthProviderC>();
+            print(
+              "ProxyProvider for ChatDetail: CREATING initial instance for effectiveUser: ${auth.currentUserId}",
+            );
+            return ChatDetailProvider(
+              chatRepository: context.read<ChatRepository>(),
+              authProvider: auth,
+              matchRepository: context.read<MatchRepository>(),
+              offerRepository: context.read<OfferRepository>(),
+            );
+          },
+          update: (
+            BuildContext context,
+            AuthProviderC auth,
+            MatchRepository matchRepo,
+            OfferRepository offerRepo,
+            ChatDetailProvider? previous,
+          ) {
+            final newActualUserId = auth.currentUserId;
+
+            print("ProxyProvider for ChatDetail: UPDATE called.");
+            print("  New Auth User ID from auth parameter: $newActualUserId");
+            if (previous != null) {
+              print(
+                "  Previous ChatDetailProvider was effective for User ID: ${previous.effectiveUserId}",
+              );
+            } else {
+              print("  Previous ChatDetailProvider instance is null.");
+            }
+            if (previous == null ||
+                previous.effectiveUserId != newActualUserId) {
+              print(
+                "  CONDITION MET: Recreating ChatDetailProvider for actual user: $newActualUserId",
+              );
+              return ChatDetailProvider(
                 chatRepository: context.read<ChatRepository>(),
                 authProvider: auth,
+                matchRepository: matchRepo,
+                offerRepository: offerRepo,
+              );
+            }
+
+            print(
+              "  CONDITION NOT MET: Reusing previous ChatDetailProvider (was effective for ${previous.effectiveUserId}).",
+            );
+            return previous;
+          },
+        ),
+        ChangeNotifierProxyProvider6<
+          AuthProviderC,
+          OfferRepository,
+          MatchRepository,
+          GarmentRepository,
+          ProfileRepository,
+          NotificationRepository,
+          OfferProvider
+        >(
+          create:
+              (context) => OfferProvider(
+                authProvider: context.read<AuthProviderC>(),
+                offerRepository: context.read<OfferRepository>(),
+                matchRepository: context.read<MatchRepository>(),
+                garmentRepository: context.read<GarmentRepository>(),
+                profileRepository: context.read<ProfileRepository>(),
+                notificationRepository: context.read<NotificationRepository>(),
               ),
+          update: (
+            context,
+            auth,
+            offerRepo,
+            matchRepo,
+            garmentRepo,
+            profileRepo,
+            notificationRepo,
+            previous,
+          ) {
+            if (previous == null ||
+                auth.currentUserId != previous.authProvider.currentUserId) {
+              return OfferProvider(
+                authProvider: auth,
+                offerRepository: offerRepo,
+                matchRepository: matchRepo,
+                garmentRepository: garmentRepo,
+                profileRepository: profileRepo,
+                notificationRepository: notificationRepo,
+              );
+            }
+            return previous;
+          },
+        ),
+        ChangeNotifierProxyProvider2<
+          AuthProviderC,
+          ChatDetailProvider,
+          RatingProvider
+        >(
+          create: (context) {
+            print("ProxyProvider for Rating: CREATING initial instance.");
+            return RatingProvider(
+              ratingRepository: context.read<RatingRepository>(),
+              authProvider: context.read<AuthProviderC>(),
+            );
+          },
+          update: (
+            context,
+            auth,
+            ChatDetailProvider? chatDetail,
+            RatingProvider? previous,
+          ) {
+            final newActualUserId = auth.currentUserId;
+            print(
+              "ProxyProvider for Rating: UPDATE called. AuthUser: $newActualUserId",
+            );
+
+            if (previous == null ||
+                previous.authProvider.currentUserId != newActualUserId) {
+              print(
+                "  CONDITION MET: Recreating RatingProvider for user: $newActualUserId",
+              );
+              final newRatingProvider = RatingProvider(
+                ratingRepository: context.read<RatingRepository>(),
+                authProvider: auth,
+              );
+              if (chatDetail != null) {
+                newRatingProvider.setChatDetailProvider(chatDetail);
+              }
+              return newRatingProvider;
+            } else {
+              if (chatDetail != null) {
+                previous.setChatDetailProvider(chatDetail);
+                print(
+                  "  RatingProvider: Updated ChatDetailProvider reference.",
+                );
+              }
+              print("  CONDITION NOT MET: Reusing previous RatingProvider.");
+              return previous;
+            }
+          },
         ),
       ],
       child: const MyApp(),

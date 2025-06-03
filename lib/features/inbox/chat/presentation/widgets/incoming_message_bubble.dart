@@ -19,8 +19,6 @@ class IncomingMessageBubble extends StatelessWidget {
       child: Container(
         constraints: BoxConstraints(maxWidth: bubbleMaxWidth),
         margin: EdgeInsets.only(
-          top: ResponsiveUtils.fontSize(context, baseSize: 4, maxSize: 6),
-          bottom: ResponsiveUtils.fontSize(context, baseSize: 4, maxSize: 6),
           right: screenSize.width * 0.15, // Margen derecho para empujarlo
           left: ResponsiveUtils.fontSize(context, baseSize: 8, maxSize: 10),
         ),

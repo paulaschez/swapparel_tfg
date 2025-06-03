@@ -1,6 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum NotificationType { like, match, message, general }
+enum NotificationType {
+  like,
+  match,
+  newOffer,
+  general,
+  offerAccepted,
+  offerDeclined,
+  newRating,
+}
 
 class NotificationModel {
   final String id; // ID del documento de notificación
@@ -17,6 +25,7 @@ class NotificationModel {
   final String? relatedGarmentImageUrl; // Imagen de la prenda
   final String? entityId; // ID de la entidad principal (ej: matchId, garmentId)
   final Timestamp createdAt;
+  final String? message; // Para un mensaje más personalizado
   bool isRead;
 
   String get displayTitle {
@@ -25,10 +34,16 @@ class NotificationModel {
         return "¡Nuevo Me Gusta!";
       case NotificationType.match:
         return "¡Es un Match!";
-      case NotificationType.message:
-        return "Nuevo Mensaje";
+      case NotificationType.newOffer:
+        return "Nueva Oferta de Intercambio";
+      case NotificationType.offerAccepted:
+        return "¡Hay Swap!";
+      case NotificationType.offerDeclined:
+        return "No ha podido ser...";
+      case NotificationType.newRating:
+        return "¡Nueva Valoración!";
       default:
-        return "Notificación";
+        return "Nueva notificación";
     }
   }
 
@@ -38,10 +53,16 @@ class NotificationModel {
         return "A ${relatedUserName ?? 'alguien'} le gusta tu prenda '${relatedGarmentName ?? 'una de tus prendas'}'.";
       case NotificationType.match:
         return "¡Has hecho match con ${relatedUserName ?? 'alguien'}! Ahora podéis chatear.";
-       case NotificationType.message:
-        return "Tienes nuevos mensajes sin leer ${relatedUserName!= null? "de ${relatedUserName!}": ''}.ƒ";
+      case NotificationType.newOffer:
+        return "${relatedUserName ?? 'Alguien'} te ha enviado una oferta.";
+      case NotificationType.offerAccepted:
+        return "¡${relatedUserName ?? 'Alguien'} ha aceptado tu oferta!";
+      case NotificationType.offerDeclined:
+        return "${relatedUserName ?? 'Alguien'} ha rechazado tu oferta.";
+      case NotificationType.newRating:
+        return message!;
       default:
-        return "Tienes una nueva notificación.";
+        return "";
     }
   }
 
@@ -58,6 +79,7 @@ class NotificationModel {
     this.entityId,
     required this.createdAt,
     this.isRead = false,
+    this.message,
   });
 
   factory NotificationModel.fromFirestore(
@@ -80,6 +102,7 @@ class NotificationModel {
       entityId: data['entityId'],
       createdAt: data['createdAt'] ?? Timestamp.now(),
       isRead: data['isRead'] ?? false,
+      message: data['message'],
     );
   }
 
@@ -96,6 +119,7 @@ class NotificationModel {
       'entityId': entityId,
       'createdAt': createdAt,
       'isRead': isRead,
+      'message': message,
     };
   }
 }

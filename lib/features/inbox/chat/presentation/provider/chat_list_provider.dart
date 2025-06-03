@@ -6,16 +6,16 @@ import '../../../../match/data/repositories/match_repository.dart'; // Para getM
 
 class ChatListProvider extends ChangeNotifier {
   final MatchRepository _matchRepository;
-  final AuthProviderC _authProvider;
   StreamSubscription? _conversationsSubscription;
+  final String? effectiveUserId;
 
   ChatListProvider({
     required MatchRepository matchRepository,
     required AuthProviderC authProvider,
   }) : _matchRepository = matchRepository,
-       _authProvider = authProvider {
+       effectiveUserId = authProvider.currentUserId {
     print(
-      "ChatListProvider created/updated. Current User ID: ${_authProvider.currentUserId}",
+      "ChatListProvider created/updated. Current User ID: $effectiveUserId",
     );
     _loadOrClearConversations();
   }
@@ -27,20 +27,29 @@ class ChatListProvider extends ChangeNotifier {
   List<MatchModel> get conversations => _conversations;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  AuthProviderC get authProvider => _authProvider;
 
   void _loadOrClearConversations() {
-    final userId = _authProvider.currentUserId;
+    final userId = effectiveUserId;
+
+    _conversationsSubscription?.cancel();
+    _conversations = [];
+    _errorMessage = null;
+
     if (userId == null || userId.isEmpty) {
-      _clearConversationsData();
+      print(
+        "ChatListProvider: effectiveUserId is null or empty. Clearing data.",
+      );
+      _isLoading = false;
+      notifyListeners();
       return;
     }
 
     _isLoading = true;
-    _errorMessage = null;
-    notifyListeners(); 
+    notifyListeners();
 
-    _conversationsSubscription?.cancel();
+    print(
+      "ChatListProvider: Subscribing to conversations for effective user $userId",
+    );
     _conversationsSubscription = _matchRepository
         .getMyMatches(userId)
         .listen(
@@ -50,7 +59,7 @@ class ChatListProvider extends ChangeNotifier {
             _errorMessage = null;
             notifyListeners();
             print(
-              "ChatListProvider: Conversations updated via stream. Count: ${convos.length}",
+              "ChatListProvider: Conversations RECEIVED for effective user $userId. Count: ${convos.length}",
             );
           },
           onError: (error) {
@@ -64,19 +73,11 @@ class ChatListProvider extends ChangeNotifier {
   }
 
 
-  void _clearConversationsData() {
-    print("ChatListProvider: Clearing conversations data.");
-    _conversationsSubscription?.cancel(); // Si usaras un stream
-    _conversations = [];
-    _isLoading = false;
-    _errorMessage = null;
-    notifyListeners(); // Importante notificar para limpiar la UI
-  }
-
   @override
   void dispose() {
+     print("ChatListProvider: DISPOSE CALLED for effectiveUser: $effectiveUserId. Cancelling subscription.");
     _conversationsSubscription?.cancel();
-    print("ChatListProvider: Disposed");
+    print("ChatListProvider: Disposed completed");
     super.dispose();
   }
 }
