@@ -7,8 +7,9 @@ abstract class OfferRepository {
   Future<void> updateOfferStatus(
     String matchId,
     String offerId,
-    OfferStatus newStatus,
-  );
+    OfferStatus newStatus, {
+    Transaction? transaction, // Parámetro opcional
+  });
   Stream<List<OfferModel>> getOfferStreamForMatch(String matchId);
 }
 
@@ -27,10 +28,10 @@ class OfferRepositoryImpl implements OfferRepository {
           _firestore
               .collection(matchesCollection)
               .doc(matchId)
-              .collection(offersCollection) 
-              .doc(); 
+              .collection(offersCollection)
+              .doc();
 
-       Map<String, dynamic> dataToSave = offerData.toJson(); 
+      Map<String, dynamic> dataToSave = offerData.toJson();
 
       await offerRef.set(dataToSave);
       print("OfferRepo: Oferta creada en match $matchId con ID ${offerRef.id}");
@@ -44,27 +45,43 @@ class OfferRepositoryImpl implements OfferRepository {
   Future<void> updateOfferStatus(
     String matchId,
     String offerId,
-    OfferStatus newStatus,
-  ) async {
+    OfferStatus newStatus, {
+    Transaction? transaction, // Parámetro opcional
+  }) async {
     if (matchId.isEmpty || offerId.isEmpty) {
       throw ArgumentError("matchId or offerId cannot be empty");
     }
+
+    final DocumentReference offerDocRef = _firestore
+        .collection(matchesCollection)
+        .doc(matchId)
+        .collection(offersCollection)
+        .doc(offerId);
+
+    final Map<String, dynamic> dataToUpdate = {
+      'status': newStatus.toString(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
     try {
-      await _firestore
-          .collection(matchesCollection)
-          .doc(matchId)
-          .collection(offersCollection)
-          .doc(offerId)
-          .update({
-            'status': newStatus.toString(),
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
-      print(
-        "OfferRepo: Estado de oferta $offerId en match $matchId actualizado a $newStatus",
-      );
+      if (transaction != null) {
+        // Usar la transacción si se proporciona
+        transaction.update(offerDocRef, dataToUpdate);
+        print(
+          "OfferRepo (TX): Estado de oferta $offerId en match $matchId actualizado a $newStatus",
+        );
+      } else {
+        // Operación normal si no hay transacción
+        await offerDocRef.update(dataToUpdate);
+        print(
+          "OfferRepo: Estado de oferta $offerId en match $matchId actualizado a $newStatus",
+        );
+      }
     } catch (e) {
-      print("OfferRepo Error - updateOfferStatus: $e");
-      throw Exception("Failed to update offer status.");
+      print(
+        "OfferRepo Error - updateOfferStatus (Offer: $offerId, Match: $matchId, TX: ${transaction != null}): $e",
+      );
+      throw Exception("Failed to update offer status for offer $offerId.");
     }
   }
 
@@ -96,6 +113,4 @@ class OfferRepositoryImpl implements OfferRepository {
       return Stream.error(Exception("Failed to get offers."));
     }
   }
-
-  
 }

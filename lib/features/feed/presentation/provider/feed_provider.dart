@@ -1,10 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:swapparel/features/auth/data/models/user_model.dart';
 import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
-import 'package:swapparel/features/match/data/models/match_model.dart';
-import 'package:swapparel/features/match/data/repositories/match_repository.dart';
-import 'package:swapparel/features/inbox/notification/data/models/notification_model.dart';
-import 'package:swapparel/features/inbox/notification/data/repositories/notification_repository.dart';
+import 'package:swapparel/features/match/presentation/provider/match_provider.dart';
 import 'package:swapparel/features/profile/data/repositories/profile_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -15,21 +12,18 @@ import 'package:swapparel/app/config/constants/firestore_collections.dart';
 class FeedProvider extends ChangeNotifier {
   final FeedRepository _feedRepository;
   final ProfileRepository _profileRepository;
-  final MatchRepository _matchRepository;
-  final NotificationRepository _notificationRepository;
   final AuthProviderC _authProvider;
+  final MatchProvider _matchProvider;
 
   FeedProvider({
     required FeedRepository feedRepository,
     required ProfileRepository profileRepository,
-    required MatchRepository matchRepository,
-    required NotificationRepository notificationRepository,
     required AuthProviderC authProvider,
+    required MatchProvider matchProvider,
   }) : _feedRepository = feedRepository,
        _profileRepository = profileRepository,
-       _matchRepository = matchRepository,
-       _notificationRepository = notificationRepository,
-       _authProvider = authProvider;
+       _authProvider = authProvider,
+       _matchProvider = matchProvider;
 
   List<GarmentModel> _garments = []; // Lista de prendas a mostrar en el feed
   bool _isLoading = false;
@@ -268,99 +262,41 @@ class FeedProvider extends ChangeNotifier {
       return;
     }
 
+    _likedGarmentIds.add(garment.id);
+    _errorMessage = null; 
+    notifyListeners();
+
     print("FeedProvider: swipeRight on ${garment.name}");
+    bool backendSuccess = false;
     try {
-      // 1. Registrar el like en el repositorio
-      await _feedRepository.likeGarment(
-        likerUserId: currentUserId!,
-        likedGarmentId: garment.id,
-        likedGarmentOwnerId: garment.ownerId,
+      backendSuccess = await _matchProvider.handleLikeGarment(
+        likedGarment: garment,
       );
 
-      // 2. Añadir a la lista local de likes para no volver a mostrarla
-      _likedGarmentIds.add(garment.id);
-
-      // 3.  Persistir este cambio en _likedGarmentIds en Firestore para el usuario
-      await _profileRepository.addLikedGarmentToMyProfile(
-        currentUserId: currentUserId!,
-        likedGarmentId: garment.id,
-      );
-
-      // 4. Notificar al usuario de que han dado like a su prenda
-      final String senderUsername = _currentUserModel!.atUsernameHandle;
-      final String? senderPhotoUrl = _currentUserModel!.photoUrl;
-
-      final likeNotification = NotificationModel(
-        id: '',
-        recipientId: garment.ownerId,
-        type: NotificationType.like,
-        relatedUserId: currentUserId,
-        relatedUserName: senderUsername,
-        relatedUserPhotoUrl: senderPhotoUrl,
-        relatedGarmentId: garment.id,
-        relatedGarmentName: garment.name,
-        relatedGarmentImageUrl:
-            garment.imageUrls.isNotEmpty ? garment.imageUrls[0] : null,
-        entityId: garment.id,
-        createdAt: Timestamp.now(),
-      );
-
-      await _notificationRepository.createNotification(likeNotification);
-
-      // 5. Comprobar si hay match
-      final MatchModel? match = await _matchRepository.checkForAndCreateMatch(
-        likerUserId: currentUserId!,
-        likedGarmentOwnerId: garment.ownerId,
-        likedGarmentId: garment.id,
-      );
-
-      if (match != null) {
-        final Duration timeSinceCreation = DateTime.now().difference(
-          match.createdAt.toDate(),
+      if (!backendSuccess) {
+        _errorMessage =
+            _matchProvider.matchErrorMessage ??
+            "No se pudo procesar el 'like'.";
+        print(
+          "FeedProvider: Falló handleLikeGarment de MatchProvider. Error: $_errorMessage",
         );
-        final bool isNewlyCreated = timeSinceCreation.inSeconds < 2;
-
-        // Solo notificar si es un nuevo match o si es un match antiguo que se había completado y hay un nuevo match entre los usuarios
-        if (match.matchStatus == MatchStatus.completed ||
-            (isNewlyCreated && match.matchStatus == MatchStatus.active)) {
-          print("FeedProvider: ¡ES UN MATCH! ID: ${match.id}");
-          // Notificación para el usuario actual (likerUserId)
-          final matchNotificationForLiker = NotificationModel(
-            id: '',
-            recipientId: currentUserId!,
-            type: NotificationType.match,
-            relatedUserId: garment.ownerId,
-            relatedUserName: garment.ownerUsername,
-            relatedUserPhotoUrl: garment.ownerPhotoUrl,
-            createdAt: Timestamp.now(),
-          );
-          await _notificationRepository.createNotification(
-            matchNotificationForLiker,
-          );
-
-          // Notificación para el dueño de la prenda (likedGarmentOwnerId)
-          final matchNotificationForOwner = NotificationModel(
-            id: '',
-            recipientId: garment.ownerId,
-            type: NotificationType.match,
-            relatedUserId: currentUserId,
-            relatedUserName: senderUsername,
-            relatedUserPhotoUrl: senderPhotoUrl,
-            createdAt: Timestamp.now(),
-          );
-          await _notificationRepository.createNotification(
-            matchNotificationForOwner,
-          );
-        }
-
-        // TODO: Opcionalmente, mostrar un feedback de match inmediato en la UI del FeedScreen.
+      } else {
+        _errorMessage = null;
+        print("FeedProvider: handleLikeGarment de MatchProvider exitoso.");
       }
-
-      _errorMessage = null;
     } catch (e) {
-      _errorMessage = e.toString();
-      // ¿Volver a añadir la prenda a la lista si el like falla?
-    } finally {
+      _errorMessage = "Error inesperado durante swipeRight: ${e.toString()}";
+      print(
+        "FeedProvider: Excepción durante swipeRight llamando a MatchProvider: $e",
+      );
+      backendSuccess = false;
+    }
+
+    if (!backendSuccess) {
+      _likedGarmentIds.remove(
+        garment.id,
+      ); // Quitar de los likes si falló el backend
+
       notifyListeners();
     }
   }
@@ -370,7 +306,6 @@ class FeedProvider extends ChangeNotifier {
     print("FeedProvider: swipeLeft on ${garment.name}");
 
     try {
-    
       // 1. Registrar el dislike en el repositorio del perfil
       await _profileRepository.addDislikedGarmentToMyProfile(
         currentUserId: currentUserId!,

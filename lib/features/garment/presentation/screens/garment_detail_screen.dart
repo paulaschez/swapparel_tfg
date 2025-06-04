@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -184,7 +185,7 @@ class _GarmentDetailScreenState extends State<GarmentDetailScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error al eliminar la prenda.")),
+            SnackBar(content: Text("Error al eliminar la prenda."), backgroundColor: AppColors.error,),
           );
         }
       }
@@ -318,10 +319,28 @@ class _GarmentDetailScreenState extends State<GarmentDetailScreen> {
                                 });
                               },
                               itemBuilder: (context, index) {
-                                return Image.network(
-                                  garment.imageUrls[index],
+                                return CachedNetworkImage(
+                                  imageUrl: garment.imageUrls[index],
                                   fit: BoxFit.cover,
-                                  width: double.infinity,
+                                  placeholder:
+                                      (context, url) => Container(
+                                        color: Colors.grey[200],
+                                        child: const Center(
+                                          child: SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.0,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  errorWidget:
+                                      (context, url, error) => const Icon(
+                                        Icons.broken_image_outlined,
+                                        color: Colors.grey,
+                                        size: 30,
+                                      ),
                                 );
                               },
                             ),
@@ -433,12 +452,12 @@ class _GarmentDetailScreenState extends State<GarmentDetailScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildChip("Talla", garment.size!),
+                        _buildChip("Talla", garment.size),
                         SizedBox(
                           width:
                               ResponsiveUtils.horizontalPadding(context) * 0.5,
                         ),
-                        _buildChip("Condición", garment.condition!),
+                        _buildChip("Condición", garment.condition),
                       ],
                     ),
 
@@ -532,12 +551,37 @@ class _GarmentDetailScreenState extends State<GarmentDetailScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             CircleAvatar(
-                              backgroundImage:
-                                  garment.ownerPhotoUrl != null
-                                      ? NetworkImage(garment.ownerPhotoUrl!)
-                                      : null,
                               radius:
                                   ResponsiveUtils.avatarRadius(context) * 0.5,
+                              backgroundColor: Colors.grey[300],
+                              backgroundImage:
+                                  (garment.ownerPhotoUrl != null &&
+                                          garment.ownerPhotoUrl!.isNotEmpty)
+                                      ? CachedNetworkImageProvider(
+                                        garment.ownerPhotoUrl!,
+                                      )
+                                      : null,
+                              onBackgroundImageError:
+                                  (garment.ownerPhotoUrl != null &&
+                                          garment.ownerPhotoUrl!.isNotEmpty)
+                                      ? (exception, stackTrace) {
+                                        print(
+                                          "Error cargando CachedNetworkImageProvider: $exception",
+                                        );
+                                      }
+                                      : null,
+                              child:
+                                 (garment.ownerPhotoUrl == null || garment.ownerPhotoUrl!.isEmpty) 
+                                      ? Icon(
+                                        Icons.person,
+                                        size:
+                                            ResponsiveUtils.avatarRadius(
+                                              context,
+                                            ) *
+                                            0.5,
+                                        color: Colors.white,
+                                      )
+                                      : null,
                             ),
                             SizedBox(
                               width: ResponsiveUtils.verticalSpacing(context),

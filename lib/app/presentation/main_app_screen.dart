@@ -12,11 +12,9 @@ class MainAppScreen extends StatefulWidget {
 }
 
 class _MainAppScreenState extends State<MainAppScreen> {
-  int _selectedIndex = 0; // Estado para el índice seleccionado (0: Feed por defecto)
+  int _selectedIndex = 2;
 
-  Widget _buildProfileScreen() {
-    return ProfileScreen( isCurrentUserProfile: true);
-  }
+
 
   late final List<Widget> _widgetOptions;
 
@@ -26,7 +24,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
     _widgetOptions = <Widget>[
       const FeedScreen(), 
       const InboxScreen(),
-      _buildProfileScreen(), // Llama al método para construir ProfileScreen
+     ProfileScreen( isCurrentUserProfile: true), // Llama al método para construir ProfileScreen
     ];
   }
 

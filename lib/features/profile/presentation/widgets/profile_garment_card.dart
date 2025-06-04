@@ -34,9 +34,9 @@ class ProfileGarmentCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           AspectRatio(
-            aspectRatio: 1 / 1, // Imagen cuadrada
+            aspectRatio: 1 / 1, 
             child: Container(
-              color: Colors.white, // Placeholder
+              color: Colors.white,
               child:
                   imageUrlToShow != null && imageUrlToShow.isNotEmpty
                       ? CachedNetworkImage(
@@ -46,7 +46,7 @@ class ProfileGarmentCard extends StatelessWidget {
                             (context, url) => Container(
                               color:
                                   Colors
-                                      .grey[200], // Placeholder mientras carga
+                                      .grey[200], 
                               child: const Center(
                                 child: SizedBox(
                                   width: 20,

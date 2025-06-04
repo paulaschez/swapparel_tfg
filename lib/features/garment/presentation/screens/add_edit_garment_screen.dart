@@ -123,6 +123,7 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
                 content: Text(
                   "Error al cargar datos de la prenda: ${garmentDetailProvider.errorMessage ?? 'Desconocido'}",
                 ),
+                backgroundColor: AppColors.error,
               ),
             );
             if (context.canPop()) context.pop();
@@ -167,7 +168,6 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
       if (_displayedImages.length < 5) {
         setState(() {
           if (kIsWeb) {
-            // Para web se leen los bytes para la previsualizacion
             pickedXFile.readAsBytes().then((bytes) {
               if (mounted) {
                 setState(() {
@@ -182,7 +182,6 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
           }
         });
       } else {
-        // Mostrar mensaje de que ya se alcanzo el limite
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -211,11 +210,12 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
 
   void _submitForm() async {
     if (!_formKey.currentState!.validate()) {
-      return; // No continuar si el formulario no es válido
+      return;
     }
 
-    // En modo añadir, se necesitan imágenes. En modo editar, podría no haber *nuevas* imágenes
-    // pero debe haber al menos una imagen en total (existente o nueva).
+    setState(() {
+      _isLoadingData = true;
+    });
     if (!widget.isEditing &&
         _displayedImages
             .where((img) => img.type != ImageSourceType.network)
@@ -228,6 +228,9 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
           backgroundColor: Colors.orangeAccent,
         ),
       );
+      setState(() {
+        _isLoadingData = false;
+      });
       return;
     }
     if (widget.isEditing && _displayedImages.isEmpty) {
@@ -237,6 +240,9 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
           backgroundColor: Colors.orangeAccent,
         ),
       );
+      setState(() {
+        _isLoadingData = false;
+      });
       return;
     }
 
@@ -254,9 +260,12 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Error: Usuario no identificado.'),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppColors.error,
         ),
       );
+      setState(() {
+        _isLoadingData = false;
+      });
       return;
     }
 
@@ -266,9 +275,9 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
         _descriptionController.text.trim().isNotEmpty
             ? _descriptionController.text.trim()
             : null;
-    String category = _selectedCategory!; // Asumimos validados
-    String? size = _selectedSize;
-    String condition = _selectedCondition!; // Asumimos validados
+    String? category = _selectedCategory;
+    String size = _selectedSize!;
+    String condition = _selectedCondition!;
     String? brand =
         _brandController.text.trim().isNotEmpty
             ? _brandController.text.trim()
@@ -352,11 +361,8 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
           ),
         ),
       );
-      // Refrescar el perfil del usuario actual para que vea los cambios en su lista de prendas
       await profileProvider.refreshUserGarments(authProvider.currentUserId!);
 
-      // Si estamos editando y el ProfileProvider también muestra el detalle de esta prenda,
-      // podríamos necesitar refrescarlo también, o simplemente hacer pop y que GarmentDetailScreen se recargue.
       if (widget.isEditing) {
         final garmentDetailProvider = Provider.of<GarmentDetailProvider>(
           context,
@@ -364,18 +370,24 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
         );
         await garmentDetailProvider.fetchGarmentDetails(
           _garmentBeingEdited!.id,
-        ); // Refrescar el detalle
+        );
       }
+      setState(() {
+        _isLoadingData = false;
+      });
 
       context.pop(); // Volver a la pantalla anterior
     } else {
+      setState(() {
+        _isLoadingData = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             garmentProvider.uploadErrorMessage ??
                 'Error al ${widget.isEditing ? "actualizar" : "subir"} la prenda.',
           ),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: AppColors.error,
         ),
       );
     }
@@ -442,288 +454,334 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
         title: Text(widget.isEditing ? "Editar Prenda " : "Añadir Prenda"),
         actions: [
           TextButton(
-            onPressed: _submitForm, // Llama al método de subida
-            child: Text(
-              widget.isEditing ? "Guardar cambios" : "Subir",
-              style: TextStyle(
-                color:
-                    AppColors
-                        .darkGreen, // O Theme.of(context).colorScheme.primary
-                fontSize: ResponsiveUtils.fontSize(
-                  context,
-                  baseSize: 16,
-                  maxSize: 18,
-                ),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            onPressed: _isLoadingData ? null : _submitForm,
+            child:
+                _isLoadingData
+                    ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.background,
+                      ),
+                    )
+                    : Text(
+                      widget.isEditing ? "Guardar cambios" : "Subir",
+                      style: TextStyle(
+                        color:
+                            AppColors
+                                .darkGreen, // O Theme.of(context).colorScheme.primary
+                        fontSize: ResponsiveUtils.fontSize(
+                          context,
+                          baseSize: 16,
+                          maxSize: 18,
+                        ),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: horizontalPadding * 1.5,
-          vertical: verticalSpacing * 1.5,
-        ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Seccion de imagenes
-              Text(
-                "Imágenes (la primera será la principal)",
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              SizedBox(height: verticalSpacing * 0.5),
-              Container(
-                height: ResponsiveUtils.fontSize(
-                  context,
-                  baseSize: 100,
-                  maxSize: 120,
-                ), // Altura fija para el visor de imágenes
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.primaryGreen),
-                ),
-                child:
-                    _displayedImages.isEmpty
-                        ? Center(
-                          child: Text(
-                            "Añade hasta 5 imágenes",
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        )
-                        : ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount:
-                              _displayedImages.length +
-                              (_displayedImages.length < 5
-                                  ? 1
-                                  : 0), // Botón '+' si < 5 imágenes
-                          itemBuilder: (context, index) {
-                            if (index == _displayedImages.length &&
-                                _displayedImages.length < 5) {
-                              // Botón para añadir más imágenes
-                              return Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: InkWell(
-                                  onTap: _handleImageSelection,
-                                  child: Container(
-                                    width: ResponsiveUtils.fontSize(
-                                      context,
-                                      baseSize: 80,
-                                      maxSize: 100,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[300],
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: Colors.grey[400]!,
-                                        style: BorderStyle.solid,
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      Icons.add_a_photo_outlined,
-                                      color: Colors.grey[700],
-                                      size: ResponsiveUtils.fontSize(
-                                        context,
-                                        baseSize: 30,
-                                        maxSize: 40,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-                            if (index >= _displayedImages.length) {
-                              return const SizedBox.shrink(); // Seguridad
-                            }
-                            final editableImage = _displayedImages[index];
-
-                            // Miniatura de imagen seleccionada
-                            return Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Stack(
-                                clipBehavior:
-                                    Clip.none, // Para que el botón de borrar se vea fuera
-                                children: [
-                                  Container(
-                                    width: ResponsiveUtils.fontSize(
-                                      context,
-                                      baseSize: 80,
-                                      maxSize: 100,
-                                    ),
-                                    height: ResponsiveUtils.fontSize(
-                                      context,
-                                      baseSize: 80,
-                                      maxSize: 100,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(8),
-                                      image:
-                                          editableImage.type ==
-                                                      ImageSourceType.network &&
-                                                  editableImage.networkUrl !=
-                                                      null
-                                              ? DecorationImage(
-                                                image:
-                                                    CachedNetworkImageProvider(
-                                                      editableImage.networkUrl!,
-                                                    ),
-                                                fit: BoxFit.cover,
-                                              )
-                                              : (editableImage.type ==
-                                                          ImageSourceType
-                                                              .file &&
-                                                      editableImage
-                                                              .localXFile !=
-                                                          null &&
-                                                      !kIsWeb
-                                                  ? DecorationImage(
-                                                    image: FileImage(
-                                                      File(
-                                                        editableImage
-                                                            .localXFile!
-                                                            .path,
-                                                      ),
-                                                    ),
-                                                    fit: BoxFit.cover,
-                                                  )
-                                                  : (editableImage.type ==
-                                                              ImageSourceType
-                                                                  .webBytes &&
-                                                          editableImage
-                                                                  .webBytes !=
-                                                              null &&
-                                                          kIsWeb
-                                                      ? DecorationImage(
-                                                        image: MemoryImage(
-                                                          editableImage
-                                                              .webBytes!,
-                                                        ),
-                                                        fit: BoxFit.cover,
-                                                      )
-                                                      : null // Placeholder si es un tipo no esperado o datos faltantes
-                                                      )),
-                                      color:
-                                          (editableImage.displaySource == null)
-                                              ? Colors.grey[200]
-                                              : null,
-                                    ),
-                                    child:
-                                        (editableImage.displaySource == null)
-                                            ? Center(
-                                              child: Icon(
-                                                Icons.hourglass_empty,
-                                                color: Colors.grey[600],
-                                              ),
-                                            )
-                                            : null,
-                                  ),
-
-                                  Positioned(
-                                    top: -10,
-                                    right: -10,
-                                    child: InkWell(
-                                      onTap: () => _removeImage(index),
-                                      child: CircleAvatar(
-                                        radius: ResponsiveUtils.fontSize(
-                                          context,
-                                          baseSize: 12,
-                                          maxSize: 14,
-                                        ),
-                                        backgroundColor: Colors.redAccent,
-                                        child: Icon(
-                                          Icons.close,
-                                          color: Colors.white,
-                                          size: ResponsiveUtils.fontSize(
-                                            context,
-                                            baseSize: 14,
-                                            maxSize: 16,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child:
+            _isLoadingData
+                ? Center(
+                  child: Text(
+                    "Se está subiendo la prenda...",
+                    textAlign: TextAlign.center,
+                  ),
+                )
+                : SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalPadding * 1.5,
+                    vertical: verticalSpacing * 1.5,
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Seccion de imagenes
+                        Text(
+                          "Imágenes (la primera será la principal)",
+                          style: Theme.of(context).textTheme.titleSmall,
                         ),
-              ),
-              if (_displayedImages
-                  .isEmpty) // Botón principal para añadir si no hay ninguna imagen aún
-                Padding(
-                  padding: EdgeInsets.only(top: verticalSpacing * 0.75),
-                  child: Center(
-                    child: ElevatedButton.icon(
-                      icon: Icon(Icons.add_photo_alternate_outlined),
-                      label: Text("Añadir Fotos"),
-                      onPressed: _handleImageSelection,
-                      style: ElevatedButton.styleFrom(
-                        // backgroundColor: Theme.of(context).colorScheme.secondary, // Usa tu color secundario
-                      ),
+                        SizedBox(height: verticalSpacing * 0.5),
+                        Container(
+                          height: ResponsiveUtils.fontSize(
+                            context,
+                            baseSize: 100,
+                            maxSize: 120,
+                          ), // Altura fija para el visor de imágenes
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.primaryGreen),
+                          ),
+                          child:
+                              _displayedImages.isEmpty
+                                  ? Center(
+                                    child: Text(
+                                      "Añade hasta 5 imágenes",
+                                      style: TextStyle(color: Colors.grey[600]),
+                                    ),
+                                  )
+                                  : ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount:
+                                        _displayedImages.length +
+                                        (_displayedImages.length < 5
+                                            ? 1
+                                            : 0), // Botón '+' si < 5 imágenes
+                                    itemBuilder: (context, index) {
+                                      if (index == _displayedImages.length &&
+                                          _displayedImages.length < 5) {
+                                        // Botón para añadir más imágenes
+                                        return Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: InkWell(
+                                            onTap: _handleImageSelection,
+                                            child: Container(
+                                              width: ResponsiveUtils.fontSize(
+                                                context,
+                                                baseSize: 80,
+                                                maxSize: 100,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[300],
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: Colors.grey[400]!,
+                                                  style: BorderStyle.solid,
+                                                ),
+                                              ),
+                                              child: Icon(
+                                                Icons.add_a_photo_outlined,
+                                                color: Colors.grey[700],
+                                                size: ResponsiveUtils.fontSize(
+                                                  context,
+                                                  baseSize: 30,
+                                                  maxSize: 40,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      if (index >= _displayedImages.length) {
+                                        return const SizedBox.shrink(); // Seguridad
+                                      }
+                                      final editableImage =
+                                          _displayedImages[index];
+
+                                      // Miniatura de imagen seleccionada
+                                      return Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Stack(
+                                          clipBehavior:
+                                              Clip.none, // Para que el botón de borrar se vea fuera
+                                          children: [
+                                            Container(
+                                              width: ResponsiveUtils.fontSize(
+                                                context,
+                                                baseSize: 80,
+                                                maxSize: 100,
+                                              ),
+                                              height: ResponsiveUtils.fontSize(
+                                                context,
+                                                baseSize: 80,
+                                                maxSize: 100,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                image:
+                                                    editableImage.type ==
+                                                                ImageSourceType
+                                                                    .network &&
+                                                            editableImage
+                                                                    .networkUrl !=
+                                                                null
+                                                        ? DecorationImage(
+                                                          image:
+                                                              CachedNetworkImageProvider(
+                                                                editableImage
+                                                                    .networkUrl!,
+                                                              ),
+                                                          fit: BoxFit.cover,
+                                                        )
+                                                        : (editableImage.type ==
+                                                                    ImageSourceType
+                                                                        .file &&
+                                                                editableImage
+                                                                        .localXFile !=
+                                                                    null &&
+                                                                !kIsWeb
+                                                            ? DecorationImage(
+                                                              image: FileImage(
+                                                                File(
+                                                                  editableImage
+                                                                      .localXFile!
+                                                                      .path,
+                                                                ),
+                                                              ),
+                                                              fit: BoxFit.cover,
+                                                            )
+                                                            : (editableImage.type ==
+                                                                        ImageSourceType
+                                                                            .webBytes &&
+                                                                    editableImage
+                                                                            .webBytes !=
+                                                                        null &&
+                                                                    kIsWeb
+                                                                ? DecorationImage(
+                                                                  image: MemoryImage(
+                                                                    editableImage
+                                                                        .webBytes!,
+                                                                  ),
+                                                                  fit:
+                                                                      BoxFit
+                                                                          .cover,
+                                                                )
+                                                                : null // Placeholder si es un tipo no esperado o datos faltantes
+                                                                )),
+                                                color:
+                                                    (editableImage
+                                                                .displaySource ==
+                                                            null)
+                                                        ? Colors.grey[200]
+                                                        : null,
+                                              ),
+                                              child:
+                                                  (editableImage
+                                                              .displaySource ==
+                                                          null)
+                                                      ? Center(
+                                                        child: Icon(
+                                                          Icons.hourglass_empty,
+                                                          color:
+                                                              Colors.grey[600],
+                                                        ),
+                                                      )
+                                                      : null,
+                                            ),
+
+                                            Positioned(
+                                              top: -10,
+                                              right: -10,
+                                              child: InkWell(
+                                                onTap:
+                                                    () => _removeImage(index),
+                                                child: CircleAvatar(
+                                                  radius:
+                                                      ResponsiveUtils.fontSize(
+                                                        context,
+                                                        baseSize: 12,
+                                                        maxSize: 14,
+                                                      ),
+                                                  backgroundColor:
+                                                      Colors.redAccent,
+                                                  child: Icon(
+                                                    Icons.close,
+                                                    color: Colors.white,
+                                                    size:
+                                                        ResponsiveUtils.fontSize(
+                                                          context,
+                                                          baseSize: 14,
+                                                          maxSize: 16,
+                                                        ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                        ),
+                        if (_displayedImages
+                            .isEmpty) // Botón principal para añadir si no hay ninguna imagen aún
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: verticalSpacing * 0.75,
+                            ),
+                            child: Center(
+                              child: ElevatedButton.icon(
+                                icon: Icon(Icons.add_photo_alternate_outlined),
+                                label: Text("Añadir Fotos"),
+                                onPressed: _handleImageSelection,
+                                style: ElevatedButton.styleFrom(
+                                  // backgroundColor: Theme.of(context).colorScheme.secondary, // Usa tu color secundario
+                                ),
+                              ),
+                            ),
+                          ),
+                        SizedBox(height: verticalSpacing * 1.5),
+                        // --- CAMPOS DEL FORMULARIO ---
+                        _buildTextField(
+                          label: "Nombre de la prenda*",
+                          controller: _nameController,
+                          hint: "Ej: Camisa de flores vintage",
+                        ),
+                        _buildTextField(
+                          label: "Descripción",
+                          controller: _descriptionController,
+                          hint: "Detalles sobre la prenda, tejido, historia...",
+                          maxLines: 3,
+                        ),
+                        _buildDropdownField(
+                          label: "Categoría",
+                          value: _selectedCategory,
+                          items: _categories,
+                          hint: "Selecciona categoría",
+                          onChanged:
+                              (val) => setState(() => _selectedCategory = val),
+                        ),
+                        _buildDropdownField(
+                          label: "Talla*",
+                          value: _selectedSize,
+                          items: _sizes,
+                          hint: "Selecciona talla",
+                          onChanged:
+                              (val) => setState(() => _selectedSize = val),
+                          validator:
+                              (val) => val == null ? "Campo requerido" : null,
+                        ),
+                        _buildDropdownField(
+                          label: "Condición*",
+                          value: _selectedCondition,
+                          items: _conditions,
+                          hint: "Selecciona condición",
+                          onChanged:
+                              (val) => setState(() => _selectedCondition = val),
+                          validator:
+                              (val) => val == null ? "Campo requerido" : null,
+                        ),
+                        _buildTextField(
+                          label: "Marca (Opcional)",
+                          controller: _brandController,
+                          hint: "Ej: Zara, Adidas...",
+                        ),
+                        _buildTextField(
+                          label: "Color principal (Opcional)",
+                          controller: _colorController,
+                          hint: "Ej: Azul marino",
+                        ),
+                        _buildTextField(
+                          label: "Material (Opcional)",
+                          controller: _materialController,
+                          hint: "Ej: Algodón, Poliéster...",
+                        ),
+
+                        SizedBox(height: verticalSpacing * 2),
+                      ],
                     ),
                   ),
                 ),
-              SizedBox(height: verticalSpacing * 1.5),
-              // --- CAMPOS DEL FORMULARIO ---
-              _buildTextField(
-                label: "Nombre de la prenda*",
-                controller: _nameController,
-                hint: "Ej: Camisa de flores vintage",
-              ),
-              _buildTextField(
-                label: "Descripción",
-                controller: _descriptionController,
-                hint: "Detalles sobre la prenda, tejido, historia...",
-                maxLines: 3,
-              ),
-              _buildDropdownField(
-                label: "Categoría*",
-                value: _selectedCategory,
-                items: _categories,
-                hint: "Selecciona categoría",
-                onChanged: (val) => setState(() => _selectedCategory = val),
-                validator: (val) => val == null ? "Campo requerido" : null,
-              ),
-              _buildDropdownField(
-                label: "Talla",
-                value: _selectedSize,
-                items: _sizes,
-                hint: "Selecciona talla (opcional)",
-                onChanged: (val) => setState(() => _selectedSize = val),
-              ),
-              _buildDropdownField(
-                label: "Condición*",
-                value: _selectedCondition,
-                items: _conditions,
-                hint: "Selecciona condición",
-                onChanged: (val) => setState(() => _selectedCondition = val),
-                validator: (val) => val == null ? "Campo requerido" : null,
-              ),
-              _buildTextField(
-                label: "Marca (Opcional)",
-                controller: _brandController,
-                hint: "Ej: Zara, Adidas...",
-              ),
-              _buildTextField(
-                label: "Color principal (Opcional)",
-                controller: _colorController,
-                hint: "Ej: Azul marino",
-              ),
-              _buildTextField(
-                label: "Material (Opcional)",
-                controller: _materialController,
-                hint: "Ej: Algodón, Poliéster...",
-              ),
-
-              SizedBox(height: verticalSpacing * 2),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -774,7 +832,6 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
       ),
     );
   }
-  //TODO: Añadir progreso de carga al guardar + manejo de errores
 
   // --- Widget Helper para DropdownButtonFormField ---
   Widget _buildDropdownField({
@@ -878,8 +935,9 @@ class EditableImage {
   // Getter para facilitar la visualización
   dynamic get displaySource {
     if (type == ImageSourceType.network) return networkUrl;
-    if (type == ImageSourceType.file)
+    if (type == ImageSourceType.file) {
       return File(localXFile!.path); // ¡Cuidado con web!
+    }
     if (type == ImageSourceType.webBytes) return webBytes;
     return null;
   }

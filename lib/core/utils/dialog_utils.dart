@@ -41,7 +41,7 @@ Future<bool?> showConfirmationDialogFixed({
               baseSize: 15,
               maxSize: 17,
             ),
-            color: AppColors.darkGreen.withOpacity(0.8),
+            color: AppColors.darkGreen.withValues(alpha: 0.8),
           ),
         ),
         actionsAlignment: MainAxisAlignment.spaceEvenly,

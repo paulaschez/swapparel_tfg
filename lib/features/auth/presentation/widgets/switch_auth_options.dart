@@ -28,7 +28,7 @@ class SwitchAuthOption extends StatelessWidget {
             txt1,
             style: TextStyle(
               color: Colors.black,
-              fontSize: ResponsiveUtils.fontSize(context, baseSize: 16),
+              fontSize: ResponsiveUtils.fontSize(context, baseSize: 14),
             ),
           ),
 
@@ -40,7 +40,7 @@ class SwitchAuthOption extends StatelessWidget {
               txt2,
               style: TextStyle(
                 color: Colors.black,
-                fontSize: ResponsiveUtils.fontSize(context, baseSize: 16),
+                fontSize: ResponsiveUtils.fontSize(context, baseSize: 14),
                 fontWeight: FontWeight.bold,
               ),
             ),

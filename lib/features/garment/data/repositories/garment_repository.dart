@@ -21,7 +21,11 @@ abstract class GarmentRepository {
   );
   Future<void> deleteGarment(String garmentId, List<String> imageUrls);
   Future<void> deleteSpecificGarmentImages(List<String> imageUrlsToDelete);
-  Future<void> updateGarmentAvailability(String garmentId, bool isAvailable);
+  Future<void> updateGarmentAvailability(
+    String garmentId,
+    bool isAvailable, {
+    required Transaction transaction,
+  });
 
   Future<List<GarmentModel>> getMultipleGarmentsByIds(List<String> garmentIds);
 }
@@ -95,7 +99,6 @@ class GarmentRepositoryImpl implements GarmentRepository {
       }
       print(
         "GarmentRepo: Documento de prenda $garmentId eliminado de Firestore.",
-        //TODO: Cambiar reglas en Storage
       );
     } catch (e) {
       print("GarmentRepo Error - deleteGarment: $e");
@@ -260,27 +263,38 @@ class GarmentRepositoryImpl implements GarmentRepository {
   @override
   Future<void> updateGarmentAvailability(
     String garmentId,
-    bool isAvailable,
-  ) async {
+    bool isAvailable, {
+    required Transaction transaction,
+  }) async {
     if (garmentId.isEmpty) {
       throw ArgumentError(
         "Garment ID cannot be empty when updating availability.",
       );
     }
+
+    final DocumentReference garmentDocRef = _firestore
+        .collection(garmentsCollection)
+        .doc(garmentId);
+
+    final Map<String, dynamic> dataToUpdate = {
+      'isAvailable': isAvailable,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
     try {
       print(
-        "GarmentRepo: Actualizando disponibilidad de $garmentId a $isAvailable",
+        "GarmentRepo: Actualizando disponibilidad de $garmentId a $isAvailable (TX: $transaction)",
       );
-      await _firestore.collection(garmentsCollection).doc(garmentId).update({
-        'isAvailable': isAvailable,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+
+      transaction.update(garmentDocRef, dataToUpdate);
+
       print(
-        "GarmentRepo: OK - Availability para $garmentId ahora es $isAvailable",
+        "GarmentRepo: OK - Availability para $garmentId ahora es $isAvailable (TX: $transaction )",
       );
     } catch (e) {
-      print("GarmentRepo Error - updateGarmentAvailability en $garmentId: $e");
-      throw Exception("Failed to update garment availability.");
+      print(
+        "GarmentRepo Error - updateGarmentAvailability en $garmentId (TX: $transaction ): $e",
+      );
+      throw Exception("Failed to update garment availability for $garmentId.");
     }
   }
 
@@ -293,10 +307,7 @@ class GarmentRepositoryImpl implements GarmentRepository {
     }
 
     List<GarmentModel> fetchedGarments = [];
-    // Firestore limita las consultas 'IN' a un máximo de 30 valores (anteriormente 10).
-    // Es más seguro usar el límite más restrictivo si no estás seguro de la versión o para
-    // futuras compatibilidades, o simplemente dividir en lotes más pequeños.
-    // El límite actual es 30 para 'in', 'not-in', y 'array-contains-any'.
+
     const int firestoreQueryLimit = 30;
     List<List<String>> idChunks = [];
 
@@ -313,8 +324,9 @@ class GarmentRepositoryImpl implements GarmentRepository {
 
     try {
       for (final chunk in idChunks) {
-        if (chunk.isEmpty)
+        if (chunk.isEmpty) {
           continue; // Saltar chunks vacíos (no debería pasar con la lógica anterior)
+        }
 
         print("GarmentRepo: Fetching chunk of garments by IDs: $chunk");
         final QuerySnapshot querySnapshot =
@@ -342,10 +354,7 @@ class GarmentRepositoryImpl implements GarmentRepository {
       return fetchedGarments;
     } catch (e) {
       print("GarmentRepo Error - getMultipleGarmentsByIds: $e");
-      // Devuelve la lista de lo que se pudo obtener, o una lista vacía, o relanza la excepción.
-      // Devolver lo obtenido parcialmente puede ser útil.
-      // throw Exception("Failed to get some garments by IDs.");
-      return fetchedGarments; // O return [] si prefieres fallar completamente.
+      return fetchedGarments; 
     }
   }
 }

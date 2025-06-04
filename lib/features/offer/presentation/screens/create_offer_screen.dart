@@ -217,9 +217,12 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     if (mounted) {
       if (success) {
         context.pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text(" Oferta enviada")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(" Oferta enviada"),
+            backgroundColor: AppColors.primaryGreen,
+          ),
+        );
         context.pop();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -227,6 +230,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
             content: Text(
               "Ha ocurrido un error y no se ha podido enviar la oferta",
             ),
+            backgroundColor: AppColors.error,
           ),
         );
         context.pop();

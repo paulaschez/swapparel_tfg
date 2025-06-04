@@ -22,8 +22,9 @@ abstract class ProfileRepository {
   Future<bool> checkIfUsernameExists(String username, {String? currentUserId});
   Future<void> updateUserProfileData(
     String userId,
-    Map<String, dynamic> dataToUpdate,
-  );
+    Map<String, dynamic> dataToUpdate, {
+    String? photoUrlToDelete,
+  });
   Future<String?> uploadProfilePicture(String userId, XFile imageXFile);
 
   // --- Interacciones (Likes/Dislikes del Usuario  ---
@@ -46,12 +47,15 @@ abstract class ProfileRepository {
   Future<Set<String>> getMyLikedGarmentIds(String currentUserId);
   Future<Set<String>> getMyDislikedGarmentIds(String currentUserId);
 
-  Future<void> incrementSwapCount(String userId);
+  Future<void> incrementSwapCount(
+    String userId, {
+    required Transaction transaction,
+  });
 
   Future<void> updateUserRatingProfile({
     required String userId,
     required double newRatingStars,
-    Transaction? transaction, // Aceptar una transacción opcional
+    required Transaction transaction, // Aceptar una transacción opcional
   });
 }
 
@@ -117,13 +121,40 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<void> updateUserProfileData(
     String userId,
-    Map<String, dynamic> dataToUpdate,
-  ) async {
+    Map<String, dynamic> dataToUpdate, {
+    String? photoUrlToDelete,
+  }) async {
     try {
-      await _firestore
-          .collection(usersCollection)
-          .doc(userId)
-          .update(dataToUpdate);
+      // 1. Eliminar la foto antigua de Storage si se proporcionó la URL
+      if (photoUrlToDelete != null && photoUrlToDelete.isNotEmpty) {
+        try {
+          Reference imageRef = _storage.refFromURL(photoUrlToDelete);
+          print(
+            "ProfileRepo: Eliminando imagen de Storage: $photoUrlToDelete (Ruta: ${imageRef.fullPath})",
+          );
+          await imageRef.delete(); 
+          print("ProfileRepo: Imagen eliminada de Storage: $photoUrlToDelete");
+        } catch (e) {
+          print(
+            "ProfileRepo Warning - deleteOldPhoto: No se pudo eliminar $photoUrlToDelete. Error: $e",
+          );
+        }
+      }
+
+      // 2. Actualizar los datos en Firestore (solo si hay algo que actualizar)
+      if (dataToUpdate.isNotEmpty) {
+        await _firestore
+            .collection(usersCollection)
+            .doc(userId)
+            .update(dataToUpdate);
+        print(
+          "ProfileRepo: Datos de perfil actualizados en Firestore para $userId.",
+        );
+      } else if (photoUrlToDelete != null) {
+        print(
+          "ProfileRepo: Solo se eliminó la foto, no hubo otros datos para actualizar en Firestore para $userId.",
+        );
+      }
     } catch (e) {
       print("Error updating user profile: $e");
       throw Exception("Failed to update profile.");
@@ -275,8 +306,6 @@ class ProfileRepositoryImpl implements ProfileRepository {
       // 4. Obtener la URL de descarga
       final String downloadUrl = await snapshot.ref.getDownloadURL();
 
-      // Actualizar photoUrl en el doc del usuario en Firestore
-      //await updateUserProfileData(userId, {'photoUrl': downloadUrl});
       return downloadUrl;
     } catch (e) {
       print("Error uploading profile picture: $e");
@@ -317,26 +346,31 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<void> incrementSwapCount(String offeringUserId) async {
-    if (offeringUserId.isEmpty) {
+  Future<void> incrementSwapCount(
+    String userId, {
+    required Transaction transaction,
+  }) async {
+    if (userId.isEmpty) {
       print("ProfileRepo Warning: userId está vacío en incrementSwapCount.");
       return;
     }
+
+    final DocumentReference userDocRef = _firestore
+        .collection(usersCollection)
+        .doc(userId);
+
+    final Map<String, dynamic> dataToUpdate = {
+      swapCountField: FieldValue.increment(1),
+    };
+
     try {
-      final userDocRef = _firestore
-          .collection(usersCollection)
-          .doc(offeringUserId);
-      await userDocRef.update({swapCountField: FieldValue.increment(1)});
-      print(
-        "ProfileRepo: Swap count incrementado para usuario $offeringUserId",
-      );
+      transaction.update(userDocRef, dataToUpdate);
+      print("ProfileRepo (TX): Swap count incrementado para usuario $userId");
     } catch (e) {
       print(
-        "ProfileRepo Error - incrementSwapCount for user $offeringUserId: $e",
+        "ProfileRepo Error - incrementSwapCount for user $userId (TX: $transaction: $e",
       );
-      throw Exception(
-        "Failed to increment swap count for user $offeringUserId.",
-      );
+      throw Exception("Failed to increment swap count for user $userId.");
     }
   }
 
@@ -344,7 +378,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
   Future<void> updateUserRatingProfile({
     required String userId,
     required double newRatingStars,
-    Transaction? transaction,
+    required Transaction transaction,
   }) async {
     if (userId.isEmpty) {
       print(
@@ -362,66 +396,38 @@ class ProfileRepositoryImpl implements ProfileRepository {
     final userDocRef = _firestore.collection(usersCollection).doc(userId);
 
     try {
-      if (transaction != null) {
-        // --- DENTRO DE UNA TRANSACCIÓN ---
-        // 1. Leer el documento del usuario DENTRO de la transacción
-        final DocumentSnapshot userSnapshot = await transaction.get(userDocRef);
+      // 1. Leer el documento del usuario DENTRO de la transacción
+      final DocumentSnapshot userSnapshot = await transaction.get(userDocRef);
 
-        if (!userSnapshot.exists) {
-          print(
-            "ProfileRepo Error: User $userId not found during transaction in updateUserRatingProfile.",
-          );
-          // Puedes lanzar una excepción aquí para que la transacción falle si es crítico
-          // throw Exception("User $userId not found during rating update.");
-          return; // O simplemente no hacer nada si el usuario no existe
-        }
-
-        final userData =
-            userSnapshot.data() as Map<String, dynamic>?; // Tipado seguro
-
-        // Obtener los valores actuales, con defaults si no existen
-        final double currentTotalStars =
-            (userData?[totalRatingStarsField] as num?)?.toDouble() ?? 0.0;
-        final int currentNumberOfRatings =
-            (userData?[numberOfRatingsField] as int?) ?? 0;
-
-        // Calcular nuevos valores
-        final double newTotalStars = currentTotalStars + newRatingStars;
-        final int newNumberOfRatings = currentNumberOfRatings + 1;
-
-        // 2. Actualizar el documento del usuario DENTRO de la transacción
-        transaction.update(userDocRef, {
-          totalRatingStarsField: newTotalStars,
-          numberOfRatingsField: newNumberOfRatings,
-        });
+      if (!userSnapshot.exists) {
         print(
-          "ProfileRepo: Rating profile updated for user $userId via transaction. New total stars: $newTotalStars, new count: $newNumberOfRatings",
+          "ProfileRepo Error: User $userId not found during transaction in updateUserRatingProfile.",
         );
-      } else {
-        // --- FUERA DE UNA TRANSACCIÓN (MENOS IDEAL PARA ESTA OPERACIÓN COMPUESTA) ---
-        // Si no se proporciona una transacción, esta operación no es atómica
-        // y podría llevar a inconsistencias si hay lecturas/escrituras concurrentes.
-        // Es MEJOR que el RatingRepository SIEMPRE llame a este método dentro de una transacción.
-        print(
-          "ProfileRepo Warning: updateUserRatingProfile called outside a transaction. This is not recommended for atomicity.",
-        );
-
-        // Para este caso, podrías optar por usar FieldValue.increment, pero calcular la media
-        // sigue siendo una operación de leer-modificar-escribir.
-        // Por simplicidad y para ilustrar, lo haré con FieldValue.increment para los contadores
-        // pero la media seguiría necesitando una lectura si la guardas.
-
-        // Esta aproximación es más simple pero menos robusta que la transaccional para el averageRating.
-        // Para totalRatingStars y numberOfRatings, increment es atómico.
-        await userDocRef.update({
-          totalRatingStarsField: FieldValue.increment(newRatingStars),
-          numberOfRatingsField: FieldValue.increment(1),
-        });
-        // Si también guardaras averageRating, tendrías que leer el documento, calcular y escribir.
-        print(
-          "ProfileRepo: Rating profile updated for user $userId (non-transactional). Incremented stars by $newRatingStars, count by 1.",
-        );
+        // throw Exception("User $userId not found during rating update.");
+        return; // O no hacer nada
       }
+
+      final userData =
+          userSnapshot.data() as Map<String, dynamic>?; // Tipado seguro
+
+      // Obtener los valores actuales, con defaults si no existen
+      final double currentTotalStars =
+          (userData?[totalRatingStarsField] as num?)?.toDouble() ?? 0.0;
+      final int currentNumberOfRatings =
+          (userData?[numberOfRatingsField] as int?) ?? 0;
+
+      // Calcular nuevos valores
+      final double newTotalStars = currentTotalStars + newRatingStars;
+      final int newNumberOfRatings = currentNumberOfRatings + 1;
+
+      // 2. Actualizar el documento del usuario DENTRO de la transacción
+      transaction.update(userDocRef, {
+        totalRatingStarsField: newTotalStars,
+        numberOfRatingsField: newNumberOfRatings,
+      });
+      print(
+        "ProfileRepo: Rating profile updated for user $userId via transaction. New total stars: $newTotalStars, new count: $newNumberOfRatings",
+      );
     } catch (e) {
       print("ProfileRepo Error - updateUserRatingProfile for user $userId: $e");
       throw Exception("Failed to update rating profile for user $userId.");

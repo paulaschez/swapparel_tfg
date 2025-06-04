@@ -1,8 +1,12 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:swapparel/core/utils/responsive_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
+import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
+import 'package:swapparel/features/match/data/models/match_model.dart';
+import 'package:swapparel/features/match/presentation/provider/match_provider.dart';
 import '../provider/feed_provider.dart';
 import '../widgets/garment_swipe_card.dart';
 import '../../../../app/config/theme/app_theme.dart';
@@ -13,6 +17,7 @@ class FeedScreen extends StatefulWidget {
   @override
   State<FeedScreen> createState() => _FeedScreenState();
 }
+
 class _FeedScreenState extends State<FeedScreen> {
   final CardSwiperController _swiperController = CardSwiperController();
 
@@ -26,7 +31,218 @@ class _FeedScreenState extends State<FeedScreen> {
 
         feedProvider.initializeFeed();
       }
+      final matchProvider = Provider.of<MatchProvider>(context, listen: false);
+      matchProvider.addListener(_handleMatchFeedback);
     });
+  }
+
+  void _handleMatchFeedback() async {
+    final matchProvider = Provider.of<MatchProvider>(context, listen: false);
+    if (matchProvider.showMatchFeedback &&
+        matchProvider.lastCreatedMatch != null) {
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showMatchAnimationOrDialog(matchProvider.lastCreatedMatch!);
+          matchProvider.consumeMatchFeedback();
+        });
+      } else {
+        matchProvider.consumeMatchFeedback();
+      }
+    }
+  }
+
+  Future<void> _showMatchAnimationOrDialog(MatchModel match) async {
+    print("UI: ¡ES UN MATCH! Mostrando feedback para match ID: ${match.id}");
+
+    // --- Obtener datos del OTRO participante del MatchModel ---
+    String otherUserId = '';
+    String otherUserName = "Alguien"; // Fallback name
+    String? otherUserPhotoUrl; // Fallback photo
+    String currentUserName = "Tú"; // Fallback para el usuario actual
+
+    final authProvider = Provider.of<AuthProviderC>(context, listen: false);
+    if (authProvider.currentUserModel != null) {
+      currentUserName =
+          authProvider.currentUserModel!.name; // Nombre del usuario actual
+    }
+
+    if (match.participantIds.length == 2 &&
+        authProvider.currentUserId != null) {
+      otherUserId = match.participantIds.firstWhere(
+        (id) => id != authProvider.currentUserId,
+        orElse:
+            () =>
+                '', // Devuelve una cadena vacía si no se encuentra (no debería pasar si hay 2 IDs)
+      );
+    }
+
+    if (otherUserId.isNotEmpty &&
+        match.participantDetails != null &&
+        match.participantDetails!.containsKey(otherUserId)) {
+      final details = match.participantDetails![otherUserId]!;
+      otherUserName = details['name'] ?? otherUserName;
+      otherUserPhotoUrl = details['photoUrl'];
+    }
+    // --- Fin de la obtención de datos ---
+
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          backgroundColor: AppColors.lightGreen, 
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0),
+          ),
+          title: Text(
+            "¡Es un Match! 🎉",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: ResponsiveUtils.fontSize(
+                context,
+                baseSize: 20,
+                maxSize: 24,
+              ),
+              color: AppColors.darkGreen,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: ResponsiveUtils.avatarRadius(context) * 0.3,
+                    backgroundColor: Colors.grey[400],
+                    backgroundImage:
+                        authProvider.currentUserModel?.photoUrl != null &&
+                                authProvider
+                                    .currentUserModel!
+                                    .photoUrl!
+                                    .isNotEmpty
+                            ? CachedNetworkImageProvider(
+                              authProvider.currentUserModel!.photoUrl!,
+                            )
+                            : null,
+                    child:
+                        authProvider.currentUserModel?.photoUrl == null ||
+                                authProvider.currentUserModel!.photoUrl!.isEmpty
+                            ? Icon(
+                              Icons.person,
+                              size:
+                                  ResponsiveUtils.avatarRadius(context) * 0.25,
+                              color: Colors.white,
+                            )
+                            : null,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Icon(
+                      Icons.favorite,
+                      color: AppColors.likeRed,
+                      size: 28,
+                    ), 
+                  ),
+                  CircleAvatar(
+                    radius: ResponsiveUtils.avatarRadius(context) * 0.3,
+                    backgroundColor: Colors.grey[400],
+                    backgroundImage:
+                        otherUserPhotoUrl != null &&
+                                otherUserPhotoUrl.isNotEmpty
+                            ? CachedNetworkImageProvider(otherUserPhotoUrl)
+                            : null,
+                    child:
+                        otherUserPhotoUrl == null || otherUserPhotoUrl.isEmpty
+                            ? Icon(
+                              Icons.person,
+                              size:
+                                  ResponsiveUtils.avatarRadius(context) * 0.25,
+                              color: Colors.white,
+                            )
+                            : null,
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Text(
+                "¡Felicidades, $currentUserName!\nHas hecho match con $otherUserName.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: ResponsiveUtils.fontSize(
+                    context,
+                    baseSize: 16,
+                    maxSize: 18,
+                  ),
+                  color: AppColors.darkGreen.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
+          ),
+          actionsAlignment: MainAxisAlignment.spaceEvenly,
+          actionsPadding: const EdgeInsets.only(
+            right: 16.0,
+            left: 16.0,
+            bottom: 12.0,
+            top: 8.0,
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text(
+                "Seguir Viendo",
+                style: TextStyle(
+                  fontSize: ResponsiveUtils.fontSize(
+                    context,
+                    baseSize: 14,
+                    maxSize: 16,
+                  ),
+                  color: AppColors.darkGreen.withValues(alpha: 0.7),
+                ),
+              ),
+              onPressed: () => Navigator.of(dialogContext).pop('continue'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                textStyle: TextStyle(
+                  fontSize: ResponsiveUtils.fontSize(
+                    context,
+                    baseSize: 14,
+                    maxSize: 16,
+                  ),
+                  fontWeight: FontWeight.bold,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              ),
+              child: Text("Ir al Chat"),
+              onPressed: () => Navigator.of(dialogContext).pop('chat'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == 'chat') {
+      print(
+        "Navegando al chat del match: ${match.id} con $otherUserName (ID: $otherUserId)",
+      );
+      context.pushNamed(
+        'chatConversation',
+        pathParameters: {'chatId': match.id},
+        extra: {
+          'otherUserName': otherUserName,
+          'otherUserPhotoUrl': otherUserPhotoUrl,
+          'otherUserId': otherUserId,
+        },
+      );
+    } else if (result == 'continue') {
+      print("Usuario eligió continuar viendo prendas.");
+    }
   }
 
   @override
@@ -73,7 +289,9 @@ class _FeedScreenState extends State<FeedScreen> {
 
     if (feedProvider.isLoading && feedProvider.garments.isEmpty) {
       // Carga inicial, pantalla vacía, mostrar loader grande en el centro
-      print("FeedScreen build: Estado - Carga Inicial o fetching más(sin prendas aún)");
+      print(
+        "FeedScreen build: Estado - Carga Inicial o fetching más(sin prendas aún)",
+      );
       feedContent = const Center(child: CircularProgressIndicator());
     } else if (feedProvider.garments.isNotEmpty) {
       // Hay prendas para mostrar, o se están cargando más en segundo plano
@@ -87,7 +305,7 @@ class _FeedScreenState extends State<FeedScreen> {
         cardsCount: feedProvider.garments.length,
         onSwipe: _onSwipe,
         onEnd: () {
-            feedProvider.fetchMoreGarments();
+          feedProvider.fetchMoreGarments();
         },
         isLoop: false,
         numberOfCardsDisplayed:
@@ -131,7 +349,7 @@ class _FeedScreenState extends State<FeedScreen> {
             } else {
               // Swipe a la IZQUIERDA (Dislike)
               feedbackIcon = Icons.close_rounded;
-              feedbackIconColor = Colors.black;
+              feedbackIconColor = Colors.blueGrey;
             }
 
             iconOpacity = ((progress - visibilityThreshold) /
@@ -175,7 +393,6 @@ class _FeedScreenState extends State<FeedScreen> {
                 },
               ),
 
-              // --- Icono de Feedback Visual (Opacidad y Escala) ---
               if (feedbackIcon != null && iconOpacity > 0)
                 Positioned.fill(
                   child: Center(
@@ -210,16 +427,17 @@ class _FeedScreenState extends State<FeedScreen> {
         "FeedScreen build: Estado - No hay más prendas y la lista está vacía.",
       );
       feedContent = Center(
-        child: Text("¡Oh! Parece que no hay prendas nuevas por ahora...", textAlign: TextAlign.center,),
+        child: Text(
+          "¡Oh! Parece que no hay prendas nuevas por ahora...",
+          textAlign: TextAlign.center,
+        ),
       );
     } else {
       print(
         "FeedScreen build: Estado - Inesperado o Preparando (hasMore: ${feedProvider.hasMoreGarments}, garmentsEmpty: ${feedProvider.garments.isEmpty}, isLoading: ${feedProvider.isLoading})",
       );
       feedContent = Center(
-        child: Text(
-          feedProvider.errorMessage ?? "Preparando prendas..." ,
-        ),
+        child: Text(feedProvider.errorMessage ?? "Preparando prendas..."),
       );
     }
 

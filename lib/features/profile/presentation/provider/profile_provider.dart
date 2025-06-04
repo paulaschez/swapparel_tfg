@@ -28,6 +28,7 @@ class ProfileProvider extends ChangeNotifier {
   String? get profileErrorMessage => _profileErrorMessage;
   bool get hasMoreGarments => _hasMoreGarments;
 
+  
   // Metodos
 
   // Obtiene las prendas del usuario (de 6 en 6)
@@ -102,6 +103,30 @@ class ProfileProvider extends ChangeNotifier {
     }
   }
 
+
+  // En ProfileProvider
+  void clearProfileData() {
+    print("ProfileProvider: clearProfileData called.");
+    _viewedUserProfile = null;
+    _viewedUserGarments = [];
+    _isLoadingProfile = false; // Importante: si se limpia, no está cargando
+    _profileErrorMessage = null;
+    _lastGarmentDocument = null;
+    _hasMoreGarments = true;
+    _currentlyFetchingUserId =
+        null; // Detener cualquier carga en curso conceptualmente
+    // notifyListeners(); // Descomentar si clearProfileData puede ser llamado externamente y la UI debe reaccionar.
+    // En tu caso, se llama desde dispose, por lo que el widget se está yendo.
+    // Pero si se llama en un logout mientras la pantalla está visible, SÍ necesitas notificar.
+    // Por seguridad, es mejor notificar:
+    if (_isLoadingProfile ||
+        _viewedUserProfile != null ||
+        _profileErrorMessage != null) {
+      // Solo notificar si hubo un cambio real
+      notifyListeners();
+    }
+  }
+
   // Para recargar solo las prendas
   Future<void> refreshUserGarments(String userId) async {
     _lastGarmentDocument = null;
@@ -117,6 +142,8 @@ class ProfileProvider extends ChangeNotifier {
     String? location,
     XFile? newProfileImage,
     String? currentUsername,
+    bool removeCurrentPhoto = false,
+    String? previousPhotoUrl,
   }) async {
     _isLoadingProfile = true;
     _profileErrorMessage = null;
@@ -138,24 +165,49 @@ class ProfileProvider extends ChangeNotifier {
           return false; // Fallo debido a username duplicado
         }
       }
+
       Map<String, dynamic> dataToUpdate = {};
       if (name != null) dataToUpdate[nameField] = name;
       if (location != null) dataToUpdate[locationField] = location;
       if (username != null) dataToUpdate[usernameField] = username;
 
-      String? newPhotoUrl;
-      if (newProfileImage != null) {
-        newPhotoUrl = await _profileRepository.uploadProfilePicture(
+      String? photoUrlToDelete; // Variable para pasar al repositorio
+      String? newPhotoUrlForFirestore;
+
+      if (removeCurrentPhoto) {
+        newPhotoUrlForFirestore =
+            null; // Indica que el campo photoUrl debe ser null
+        if (previousPhotoUrl != null && previousPhotoUrl.isNotEmpty) {
+          photoUrlToDelete = previousPhotoUrl;
+        }
+        print("ProfileProvider: Se eliminará la foto de perfil existente.");
+      } else if (newProfileImage != null) {
+        final uploadedPhotoUrl = await _profileRepository.uploadProfilePicture(
           userId,
           newProfileImage,
         );
-
-        newPhotoUrl != null
-            ? dataToUpdate['photoUrl'] = newPhotoUrl
-            : throw Exception("Fallo al subir la nueva foto de perfil");
+        if (uploadedPhotoUrl != null) {
+          newPhotoUrlForFirestore = uploadedPhotoUrl;
+          if (previousPhotoUrl != null && previousPhotoUrl.isNotEmpty) {
+            photoUrlToDelete = previousPhotoUrl;
+          }
+        } else {
+          throw Exception("Fallo al subir la nueva foto de perfil");
+        }
       }
-      if (dataToUpdate.isNotEmpty) {
-        await _profileRepository.updateUserProfileData(userId, dataToUpdate);
+
+      if (newPhotoUrlForFirestore != null || removeCurrentPhoto) {
+        dataToUpdate[photoUrlField] =
+            newPhotoUrlForFirestore; // Puede ser la nueva URL o null
+      }
+
+      // Solo actualizar si hay datos que cambiar o una foto que borrar
+      if (dataToUpdate.isNotEmpty || photoUrlToDelete != null) {
+        await _profileRepository.updateUserProfileData(
+          userId,
+          dataToUpdate,
+          photoUrlToDelete: photoUrlToDelete,
+        );
       }
 
       // Recargar el perfil para reflejar los cambios
@@ -181,16 +233,5 @@ class ProfileProvider extends ChangeNotifier {
     } catch (e) {
       return null;
     }
-  }
-
-  // Limpia el estado cuando se sale de la pantalla de perfil
-  void clearProfileData() {
-    _viewedUserProfile = null;
-    _viewedUserGarments = [];
-    _isLoadingProfile = false;
-    _profileErrorMessage = null;
-    _lastGarmentDocument = null;
-    _hasMoreGarments = true;
-    _currentlyFetchingUserId = null;
   }
 }

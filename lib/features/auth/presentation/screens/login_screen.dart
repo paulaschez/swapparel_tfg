@@ -9,181 +9,169 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-class SignIn extends StatefulWidget {
-  const SignIn({super.key});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<SignIn> createState() => _SignInState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _SignInState extends State<SignIn> {
-  // Controladores para los campos de texto
+class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _userMailCtrl = TextEditingController();
   final TextEditingController _userPasswordCtrl = TextEditingController();
-
-  // Clave para validar el formulario
   final _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _userMailCtrl.dispose();
+    _userPasswordCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _performLogin() async {
+    if (_formKey.currentState!.validate()) {
+      final authProvider = Provider.of<AuthProviderC>(context, listen: false);
+
+      final success = await authProvider.signIn(
+        email: _userMailCtrl.text, 
+        password: _userPasswordCtrl.text,
+      );
+
+      if (!mounted) return; 
+
+      if (success) {
+
+        print("LoginScreen: Inicio de sesión exitoso, GoRouter debería redirigir.");
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(
+             content: Text("¡Bienvenido/a de nuevo!"),
+             backgroundColor: AppColors.primaryGreen, 
+           ),
+         );
+      } else {
+        // Mostrar el error obtenido del provider
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.errorMessage ?? "Error al iniciar sesión. Inténtalo de nuevo."),
+            backgroundColor: AppColors.error, 
+          ),
+        );
+      }
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isLoading = context.watch<AuthProviderC>().isLoading;
-    print("DEBUG: Construyendo widget SignIn.");
+    final isLoadingFromProvider = context.watch<AuthProviderC>().isLoading;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: ResponsiveUtils.largeVerticalSpacing(context) * 3.5,
-            horizontal: ResponsiveUtils.horizontalPadding(context) * 1.5,
-          ),
-          child: Column(
-            children: [
-              // --- Título ---
-              Text(
-                "Iniciar Sesión",
-                style: TextStyle(
-                  fontSize: ResponsiveUtils.fontSize(context, baseSize: 33),
-                  fontWeight: FontWeight.bold,
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: ResponsiveUtils.largeVerticalSpacing(context) * 3.5,
+              horizontal: ResponsiveUtils.horizontalPadding(context) * 1.5,
+            ),
+            child: Column(
+              children: [
+                Text(
+                  "Iniciar Sesión",
+                  style: TextStyle(
+                    fontSize: ResponsiveUtils.fontSize(context, baseSize: 33),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              SizedBox(height: ResponsiveUtils.largeVerticalSpacing(context)),
-              // --- Formulario ---
-              Form(
-                key: _formKey,
-                child: FormContainer(
-                  children: [
-                    // --- Campo Email ---
-                    CustomTextField(
-                      title: "Email",
-                      icon: Icons.mail_outline,
-                      controller: _userMailCtrl,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor introduzca su email';
-                        } else if (!RegExp(
-                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                        ).hasMatch(value)) {
-                          return "Introduzca un email válido";
-                        }
-                        return null;
-                      },
-                      hintText: "Introduzca su email",
-                    ),
-                    SizedBox(height: ResponsiveUtils.verticalSpacing(context)),
-                    // --- Campo Contraseña ---
-                    CustomTextField(
-                      title: "Contraseña",
-                      icon: Icons.password,
-                      controller: _userPasswordCtrl,
-                      obscureText: true,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor introduzca la contraseña';
-                        }
-                        return null;
-                      },
-                      hintText: "Introduzca su contraseña",
-                    ),
-                    SizedBox(height: size.height * 0.01),
-                    // --- Enlace Olvidó Contraseña ---
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          context.go(AppRoutes.forgotPassword);
+                SizedBox(height: ResponsiveUtils.largeVerticalSpacing(context)),
+                Form(
+                  key: _formKey,
+                  child: FormContainer(
+                    children: [
+                      CustomTextField(
+                        title: "Email",
+                        icon: Icons.mail_outline,
+                        controller: _userMailCtrl,
+                        keyboardType: TextInputType.emailAddress, 
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor introduzca su email';
+                          }
+                          final emailRegex = RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+");
+                          if (!emailRegex.hasMatch(value)) {
+                            return "Introduzca un email válido";
+                          }
+                          return null;
                         },
-                        child: Text(
-                          "¿Olvidaste tu contraseña?",
-                          style: TextStyle(
-                            color: AppColors.primaryGreen,
-                            fontSize: ResponsiveUtils.fontSize(
-                              context,
-                              baseSize: 15,
+                        hintText: "Introduzca su email",
+                      ),
+                      SizedBox(height: ResponsiveUtils.verticalSpacing(context)),
+                      CustomTextField(
+                        title: "Contraseña",
+                        icon: Icons.lock_outline, 
+                        controller: _userPasswordCtrl,
+                        isPassword: true,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Por favor introduzca la contraseña';
+                          }
+                           if (value.length < 6) {
+                             return 'La contraseña debe tener al menos 6 caracteres.';
+                           }
+                          return null;
+                        },
+                        hintText: "Introduzca su contraseña",
+                      ),
+                      SizedBox(height: size.height * 0.01),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            context.push(AppRoutes.forgotPassword);
+                          },
+                          child: Text(
+                            "¿Olvidaste tu contraseña?",
+                            style: TextStyle(
+                              color: AppColors.primaryGreen,
+                              fontSize: ResponsiveUtils.fontSize(context, baseSize: 15),
+                              fontWeight: FontWeight.w500,
                             ),
-                            fontWeight: FontWeight.w500,
+                            textAlign: TextAlign.end,
                           ),
-                          textAlign: TextAlign.end,
                         ),
                       ),
-                    ),
-                    SizedBox(height: size.height * 0.05),
-
-                    Center(
-                      child:
-                          isLoading
-                              ? Center(
+                      SizedBox(height: size.height * 0.05),
+                      Center(
+                        child: isLoadingFromProvider 
+                            ? Center(
                                 child: CircularProgressIndicator(
                                   color: AppColors.darkGreen,
                                 ),
                               )
-                              :
-                              // --- Botón SignIn ---
-                              ElevatedButton(
-                                onPressed: () async {
-                                  // Valida el formulario
-                                  if (_formKey.currentState!.validate()) {
-                                    final authProvider =
-                                        Provider.of<AuthProviderC>(
-                                          context,
-                                          listen: false,
-                                        );
-                                    final success = await authProvider.signIn(
-                                      email: _userMailCtrl.text.trim(),
-                                      password: _userPasswordCtrl.text.trim(),
-                                    );
-
-                                    if (mounted && success) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            "Logged In Succesfully",
-                                          ),
-                                        ),
-                                      );
-                                    } else if (mounted && !success) {
-                                      // Muestra el error obtenido por el provider
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          backgroundColor: Colors.orangeAccent,
-                                          content: Text(
-                                            authProvider.errorMessage ??
-                                                "Login failed",
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
+                            : ElevatedButton(
+                                onPressed: _performLogin, 
                                 child: Text(
                                   "INICIAR SESIÓN",
                                   style: TextStyle(
-                                    fontSize: ResponsiveUtils.fontSize(
-                                      context,
-                                      baseSize: 22,
-                                    ),
+                                    fontSize: ResponsiveUtils.fontSize(context, baseSize: 22),
                                   ),
                                 ),
                               ),
-                    ),
-
-                    SizedBox(height: size.height * 0.02),
-                  ],
+                      ),
+                      SizedBox(height: size.height * 0.02),
+                    ],
+                  ),
                 ),
-              ),
-
-              SizedBox(height: size.height * 0.04),
-              // --- Texto y Enlace a SignUp ---
-              SwitchAuthOption(
-                txt1: "¿No tienes cuenta?",
-                txt2: "Registrate aquí",
-                routePath: AppRoutes.register,
-              ),
-            ],
+                SizedBox(height: size.height * 0.04),
+                SwitchAuthOption(
+                  txt1: "¿No tienes cuenta?",
+                  txt2: "Regístrate aquí", 
+                  routePath: AppRoutes.register,
+                ),
+              ],
+            ),
           ),
         ),
       ),

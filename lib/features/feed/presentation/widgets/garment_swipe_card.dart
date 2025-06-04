@@ -53,30 +53,47 @@ class _GarmentSwipeCardState extends State<GarmentSwipeCard> {
                       alignment: Alignment.center,
                       children: [
                         Container(
-                          decoration: BoxDecoration(color: Colors.grey[200]),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.lightGreen.withValues(alpha: 0.7),
+                                AppColors.lightGreen.withValues(alpha: 0.7),
+                              ],
+                            ),
+                          ),
                           clipBehavior: Clip.antiAlias,
                           child:
                               widget.garment.imageUrls.isNotEmpty
                                   ? Container(
                                     // Placeholder visual para la imagen
                                     alignment: Alignment.center,
-                                    color: Colors.white,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppColors.primaryGreen.withValues(
+                                            alpha: 0.7,
+                                          ),
+                                          AppColors.primaryGreen.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                    ),
                                     child: CachedNetworkImage(
                                       imageUrl:
                                           widget
                                               .garment
                                               .imageUrls[_currentImageIndex],
-                                      fit: BoxFit.cover,
+                                      fit: BoxFit.fill,
                                       placeholder:
                                           (context, url) => Container(
-                                            color:
-                                                Colors
-                                                    .grey[200], // Placeholder mientras carga
+                                            color: Colors.grey[200],
                                             child: const Center(
                                               child: SizedBox(
                                                 width: 20,
-                                                height:
-                                                    20, // Tamaño más pequeño para el loader
+                                                height: 20,
                                                 child:
                                                     CircularProgressIndicator(
                                                       strokeWidth: 2.0,
@@ -198,43 +215,40 @@ class _GarmentSwipeCardState extends State<GarmentSwipeCard> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (widget.garment.size != null &&
-                                  widget.garment.size!.isNotEmpty)
-                                Text(
-                                  "Talla: ${widget.garment.size}",
+                              Text(
+                                "Talla: ${widget.garment.size}",
 
-                                  style: Theme.of(
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium?.copyWith(
+                                  fontSize: ResponsiveUtils.fontSize(
                                     context,
-                                  ).textTheme.bodyMedium?.copyWith(
-                                    fontSize: ResponsiveUtils.fontSize(
-                                      context,
-                                      baseSize: 13,
-                                      tabletMultiplier: 1.1,
-                                      desktopMultiplier: 1.3,
-                                      maxSize: 17,
-                                    ),
+                                    baseSize: 13,
+                                    tabletMultiplier: 1.1,
+                                    desktopMultiplier: 1.3,
+                                    maxSize: 17,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              if (widget.garment.condition != null &&
-                                  widget.garment.condition!.isNotEmpty)
-                                Text(
-                                  "Condición: ${widget.garment.condition}",
-                                  style: Theme.of(
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+
+                              Text(
+                                "Condición: ${widget.garment.condition}",
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyMedium?.copyWith(
+                                  fontSize: ResponsiveUtils.fontSize(
                                     context,
-                                  ).textTheme.bodyMedium?.copyWith(
-                                    fontSize: ResponsiveUtils.fontSize(
-                                      context,
-                                      baseSize: 13,
-                                      tabletMultiplier: 1.1,
-                                      desktopMultiplier: 1.3,
-                                      maxSize: 17,
-                                    ),
+                                    baseSize: 13,
+                                    tabletMultiplier: 1.1,
+                                    desktopMultiplier: 1.3,
+                                    maxSize: 17,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ],
                           ),
                         ),
@@ -271,26 +285,29 @@ class _GarmentSwipeCardState extends State<GarmentSwipeCard> {
                             ),
                             backgroundColor: Colors.grey[300],
 
-                            backgroundImage: widget.garment.ownerPhotoUrl != null && widget.garment.ownerPhotoUrl!.isNotEmpty
-                             ? CachedNetworkImageProvider(widget.garment.ownerPhotoUrl!)
-                                 : null,
+                            backgroundImage:
+                                widget.garment.ownerPhotoUrl != null &&
+                                        widget.garment.ownerPhotoUrl!.isNotEmpty
+                                    ? CachedNetworkImageProvider(
+                                      widget.garment.ownerPhotoUrl!,
+                                    )
+                                    : null,
                             child:
-                            widget.garment.ownerPhotoUrl == null ||
+                                widget.garment.ownerPhotoUrl == null ||
                                         widget.garment.ownerPhotoUrl!.isEmpty
-                                    ? 
-                            Icon(
-                              Icons.person,
-                              size: ResponsiveUtils.fontSize(
-                                context,
-                                baseSize: 18,
-                                tabletMultiplier: 1.1,
-                                desktopMultiplier: 1.3,
-                                maxSize: 30,
-                              ),
-                              color: Colors.white,
-                            )
-                            : null
-                          ),/*  */
+                                    ? Icon(
+                                      Icons.person,
+                                      size: ResponsiveUtils.fontSize(
+                                        context,
+                                        baseSize: 18,
+                                        tabletMultiplier: 1.1,
+                                        desktopMultiplier: 1.3,
+                                        maxSize: 30,
+                                      ),
+                                      color: Colors.white,
+                                    )
+                                    : null,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(

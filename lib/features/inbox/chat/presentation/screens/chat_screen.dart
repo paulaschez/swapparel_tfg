@@ -89,7 +89,7 @@ class _ChatScreenState extends State<ChatScreen> {
             content: Text(
               chatDetailProvider.errorMessage ?? "Error al enviar mensaje",
             ),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -216,6 +216,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       content: Text(
                         "Ya tienes una oferta pendiente para este chat.",
                       ),
+                      backgroundColor: Colors.orangeAccent,
                     ),
                   );
                   return;
@@ -237,6 +238,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text("Error al identificar al otro usuario."),
+                      backgroundColor: AppColors.error,
                     ),
                   );
                   return;
@@ -250,7 +252,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   pathParameters: {'matchId': widget.chatId},
                   extra: {
                     'offeringUserId': authUserId,
-                    'receivingUserId': actualOtherUserId, 
+                    'receivingUserId': actualOtherUserId,
                     'receivingUsername': otherUsernameForOffer,
                   },
                 );
@@ -327,43 +329,77 @@ class _ChatScreenState extends State<ChatScreen> {
                           final offer = item.offer;
                           return OfferCardInChat(
                             offer: offer,
-                            currentUserId:
-                                authUserId!, 
-                            onAccept: (OfferModel offerToAccept) {
+                            currentUserId: authUserId!,
+                            onAccept: (OfferModel offerToAccept) async {
+                              // <--- MARCAR COMO ASYNC
                               print(
                                 "ChatScreen: Aceptando oferta ${offerToAccept.id}",
                               );
-                              context.read<OfferProvider>().respondToOffer(
-                                matchId:
-                                    offerToAccept.matchId, 
-                                offer: offerToAccept,
-                                accepted: true,
-                              );
+                              bool success = await context
+                                  .read<OfferProvider>()
+                                  .respondToOffer(
+                                    matchId: offerToAccept.matchId,
+                                    offer: offerToAccept,
+                                    accepted: true,
+                                  );
+                              if (!success && mounted) {
+                                final errorMessage =
+                                    context.read<OfferProvider>().offerError ??
+                                    "Error al aceptar la oferta";
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(errorMessage),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                              } else if (success && mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("Oferta aceptada"),
+                                    backgroundColor: AppColors.primaryGreen,
+                                  ),
+                                );
+                              }
                             },
-                            onDecline: (OfferModel offerToDecline) {
+                            onDecline: (OfferModel offerToDecline) async {
                               print(
                                 "ChatScreen: Rechazando oferta ${offerToDecline.id}",
                               );
-                              context.read<OfferProvider>().respondToOffer(
-                                matchId:
-                                    offerToDecline.matchId, 
-                                offer: offerToDecline,
-                                accepted: false,
-                              );
+                              bool success = await context
+                                  .read<OfferProvider>()
+                                  .respondToOffer(
+                                    matchId: offerToDecline.matchId,
+                                    offer: offerToDecline,
+                                    accepted: false,
+                                  );
+                              if (!success && mounted) {
+                                final errorMessage =
+                                    context.read<OfferProvider>().offerError ??
+                                    "Error al rechazar la oferta";
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(errorMessage),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                              } else if (success && mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("Oferta rechazada"),
+                                   backgroundColor: AppColors.primaryGreen,),
+                                );
+                              }
                             },
                           );
                         } else if (item is RatingPromptItem) {
-                       
                           return RatingPromptCard(
                             matchId: item.matchId,
                             offerId: item.offerId,
-                            ratingUserId:
-                                authUserId!, 
+                            ratingUserId: authUserId!,
                             userToRateId: item.userToRateId,
                             userToRateName: item.userToRateName,
                           );
                         }
-                        return const SizedBox.shrink(); 
+                        return const SizedBox.shrink();
                       },
                     );
                   }
@@ -447,8 +483,7 @@ abstract class ChatTimelineItem {
 
 class MessageItem extends ChatTimelineItem {
   final MessageModel message;
-  MessageItem(this.message)
-    : super(message.timestamp);
+  MessageItem(this.message) : super(message.timestamp);
 }
 
 class OfferItem extends ChatTimelineItem {
@@ -466,7 +501,6 @@ class RatingPromptItem extends ChatTimelineItem {
     required this.offerId,
     required this.userToRateId,
     required this.userToRateName,
-    required Timestamp
-    createdAt, 
+    required Timestamp createdAt,
   }) : super(createdAt);
 }

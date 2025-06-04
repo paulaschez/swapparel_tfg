@@ -66,7 +66,7 @@ class RatingRepositoryImpl implements RatingRepository {
           relatedUserName: rating.ratingUserName,
           createdAt: Timestamp.now(),
           message:
-              '${rating.ratedUserName ?? "Un usuario"} te ha valorado: "${rating.comment?.trim()}". (${rating.stars} estrella/s).',
+              '${rating.ratingUserName ?? "Un usuario"} te ha valorado: "${rating.comment?.trim()}". (${rating.stars} estrella/s).',
         );
 
         await _notificationRepository.createNotification(ratingNotification);

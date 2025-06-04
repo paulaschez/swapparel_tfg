@@ -65,11 +65,6 @@ class ImagePickerUtils {
       );
 
       if (pickedFile != null) {
-
-        /* if(kIsWeb){
-          final Uint8List imageBytes = await pickedFile.readAsBytes();
-
-        } */
         return pickedFile;
       }
     } catch (e) {

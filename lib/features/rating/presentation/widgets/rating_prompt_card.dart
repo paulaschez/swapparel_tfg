@@ -36,6 +36,7 @@ class _RatingPromptCardState extends State<RatingPromptCard> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Por favor, selecciona al menos una estrella."),
+           backgroundColor: Colors.orangeAccent,
         ),
       );
       return;
@@ -61,7 +62,7 @@ class _RatingPromptCardState extends State<RatingPromptCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("¡Gracias por tu valoración!"),
-            backgroundColor: AppColors.darkGreen,
+            backgroundColor: AppColors.primaryGreen,
           ),
         );
       } else {

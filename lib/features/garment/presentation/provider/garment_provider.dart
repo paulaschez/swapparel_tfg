@@ -30,8 +30,8 @@ class GarmentProvider extends ChangeNotifier {
   Future<bool> submitNewGarment({
     required String name,
     String? description,
-    required String category,
-    String? size,
+    String? category,
+    required String size,
     required String condition,
     String? brand,
     String? color,
@@ -84,6 +84,7 @@ class GarmentProvider extends ChangeNotifier {
         description: description,
         brand: brand,
         material: material,
+        updateAt: Timestamp.now(),
       );
 
       // Guardar datos en firestore
@@ -158,9 +159,9 @@ class GarmentProvider extends ChangeNotifier {
         'name': name,
         'description': description,
         'category': category,
-        'color' : color,
+        'color': color,
         'material': material,
-        'brand' :brand,
+        'brand': brand,
         'imageUrls': finalImageUrls, // La lista final de URLs
         'updatedAt': FieldValue.serverTimestamp(),
       };

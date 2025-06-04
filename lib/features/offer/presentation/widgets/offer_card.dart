@@ -69,7 +69,7 @@ class OfferCardInChat extends StatelessWidget {
           ResponsiveUtils.fontSize(context, baseSize: 12, maxSize: 16),
         ),
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.8,
+          maxWidth: MediaQuery.of(context).size.width * 0.7,
         ),
         decoration: BoxDecoration(
           color: cardBackgroundColor,

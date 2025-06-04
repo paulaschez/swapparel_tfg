@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:swapparel/features/auth/data/models/user_model.dart';
+import 'package:swapparel/features/inbox/notification/data/models/notification_model.dart';
+import 'package:swapparel/features/inbox/notification/data/repositories/notification_repository.dart';
 import '../../../../app/config/constants/firestore_collections.dart';
 import '../models/match_model.dart'; // Tu MatchModel
 
@@ -23,13 +25,27 @@ abstract class MatchRepository {
     Map<String, dynamic> dataToUpdate, {
     Transaction? transaction,
   });
+
+  Future<MatchModel?> checkForMatchAndNotify({
+    required String likerUserId,
+    required String likedGarmentOwnerId,
+    required String likedGarmentId,
+    // Pasar los datos necesarios para las notificaciones
+    required String likerUsername,
+    String? likerPhotoUrl,
+    required String likedGarmentOwnerUsername,
+  });
 }
 
 class MatchRepositoryImpl implements MatchRepository {
   final FirebaseFirestore _firestore;
+  final NotificationRepository _notificationRepository;
 
-  MatchRepositoryImpl({required FirebaseFirestore firestore})
-    : _firestore = firestore;
+  MatchRepositoryImpl({
+    required FirebaseFirestore firestore,
+    required NotificationRepository notificationRepository,
+  }) : _firestore = firestore,
+       _notificationRepository = notificationRepository;
 
   @override
   Future<MatchModel?> checkForAndCreateMatch({
@@ -227,7 +243,7 @@ class MatchRepositoryImpl implements MatchRepository {
     }
   }
 
-@override
+  @override
   Stream<MatchModel?> getMatchStream(String matchId) {
     print("MatchRepository: getMatchStream CALLED for matchId: '$matchId'");
     if (matchId.isEmpty) {
@@ -340,6 +356,62 @@ class MatchRepositoryImpl implements MatchRepository {
       throw Exception("Failed to update match fields for $matchId.");
     }
   }
+Future<MatchModel?> checkForMatchAndNotify({
+    required String likerUserId,
+    required String likedGarmentOwnerId,
+    required String likedGarmentId,
+    required String likerUsername,
+    String? likerPhotoUrl,
+    required String likedGarmentOwnerUsername,
+  }) async {
+    final MatchModel? match = await checkForAndCreateMatch( // Tu método existente
+      likerUserId: likerUserId,
+      likedGarmentOwnerId: likedGarmentOwnerId,
+      likedGarmentId: likedGarmentId,
+    );
+
+    if (match != null) {
+      final Duration timeSinceCreation = DateTime.now().difference(
+        match.createdAt.toDate(),
+      );
+      final bool isNewlyCreatedOrReactivated = timeSinceCreation.inSeconds < 5; // Umbral más generoso
+
+      if ((match.matchStatus == MatchStatus.active && isNewlyCreatedOrReactivated) || match.matchStatus == MatchStatus.completed) {
+        print("MatchRepository: ¡ES UN MATCH Y SE NOTIFICARÁ! ID: ${match.id}");
+
+        // Notificación para el usuario actual (likerUserId)
+        final matchNotificationForLiker = NotificationModel(
+          id: '', // Firestore generará el ID
+          recipientId: likerUserId,
+          type: NotificationType.match,
+          relatedUserId: likedGarmentOwnerId,
+          relatedUserName: likedGarmentOwnerUsername, // Necesitas este dato
+          createdAt: Timestamp.now(),
+          entityId: match.id, // Podrías usar el ID del match
+        );
+        await _notificationRepository.createNotification(matchNotificationForLiker);
+
+        // Notificación para el dueño de la prenda (likedGarmentOwnerId)
+        final matchNotificationForOwner = NotificationModel(
+          id: '',
+          recipientId: likedGarmentOwnerId,
+          type: NotificationType.match,
+          relatedUserId: likerUserId,
+          relatedUserName: likerUsername, // Dato del liker
+          createdAt: Timestamp.now(),
+          entityId: match.id,
+        );
+        await _notificationRepository.createNotification(matchNotificationForOwner);
+        return match; // Devolver el match si se notificó
+      } else if (match.matchStatus == MatchStatus.completed) {
+          print("MatchRepository: Match encontrado pero ya estaba completado. ID: ${match.id}");
+      } else if (match.matchStatus == MatchStatus.active && !isNewlyCreatedOrReactivated) {
+          print("MatchRepository: Match activo encontrado pero no es nuevo ni reactivado recientemente. ID: ${match.id}");
+      }
+    }
+    return null; // Devolver null si no hubo un "nuevo" match notificable
+  }
+
 }
 
 extension DocumentSnapshotExtension on DocumentSnapshot {

@@ -31,52 +31,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _initProfileData();
+  }
+
+  void _initProfileData() {
     // Determinar el userId a cargar
+    final authProvider = Provider.of<AuthProviderC>(context, listen: false);
     if (widget.isCurrentUserProfile) {
-      // Si es el usuario logueado obtener su id
-      final authProvider = Provider.of<AuthProviderC>(context, listen: false);
       _targetUserId = authProvider.currentUserId ?? '';
+      if (_targetUserId.isEmpty) {
+        print(
+          "ProfileScreen WARN (initState/didUpdate): Es Mi Perfil pero currentUserId es nulo/vacío. No se iniciará la carga aún.",
+        );
+      }
     } else {
       _targetUserId = widget.viewingUserId ?? '';
+      if (_targetUserId.isEmpty) {
+        print(
+          "ProfileScreen ERROR (initState/didUpdate): Se está viendo el perfil de otro usuario pero viewingUserId es nulo/vacío.",
+        );
+        Provider.of<ProfileProvider>(context, listen: false).clearProfileData();
+      }
     }
 
-    // Cargar datos del perfil
     if (_targetUserId.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Provider.of<ProfileProvider>(
-          context,
-          listen: false,
-        ).fetchUserProfileAndGarments(_targetUserId);
+        if (mounted) {
+          Provider.of<ProfileProvider>(
+            context,
+            listen: false,
+          ).fetchUserProfileAndGarments(_targetUserId);
+        }
       });
-    } else if (widget.isCurrentUserProfile) {
-      print(
-        "ProfileScreen WARN: Es Mi Perfil pero no se pudo obtener currentUserId.",
-      );
+    } else {
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Provider.of<ProfileProvider>(
+            context,
+            listen: false,
+          ).clearProfileData();
+        }
+      });
     }
   }
 
   @override
   void didUpdateWidget(covariant ProfileScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Si el viewingUserId cambia sin pasar por MainAppScreen
-    String newTargetUserId;
+    final authProvider = Provider.of<AuthProviderC>(context, listen: false);
+    String newPotentialTargetUserId;
+
     if (widget.isCurrentUserProfile) {
-      newTargetUserId =
-          Provider.of<AuthProviderC>(context, listen: false).currentUserId ??
-          '';
+      newPotentialTargetUserId = authProvider.currentUserId ?? '';
     } else {
-      newTargetUserId = widget.viewingUserId ?? '';
+      newPotentialTargetUserId = widget.viewingUserId ?? '';
     }
 
-    if (newTargetUserId.isNotEmpty && newTargetUserId != _targetUserId) {
-      _targetUserId = newTargetUserId;
+    if (newPotentialTargetUserId != _targetUserId ||
+        widget.isCurrentUserProfile != oldWidget.isCurrentUserProfile) {
       print(
-        "ProfileScreen: viewingUserId cambió a $_targetUserId, recargando perfil.",
+        "ProfileScreen: widget updated. Old target: $_targetUserId, New potential: $newPotentialTargetUserId. isCurrentUserProfile changed: ${widget.isCurrentUserProfile != oldWidget.isCurrentUserProfile}. Recargando perfil.",
       );
-      Provider.of<ProfileProvider>(
-        context,
-        listen: false,
-      ).fetchUserProfileAndGarments(_targetUserId, isRefresh: true);
+
+      _initProfileData();
     }
   }
 
@@ -84,7 +102,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void dispose() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        // Asegurarse que el widget aún está montado
         Provider.of<ProfileProvider>(context, listen: false).clearProfileData();
       }
     });
@@ -95,12 +112,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final profileProvider = context.watch<ProfileProvider>();
     final authProvider = context.watch<AuthProviderC>();
+
+    if (widget.isCurrentUserProfile && _targetUserId.isEmpty) {
+      print(
+        "ProfileScreen Build: _targetUserId is empty for current user profile. Showing waiting state.",
+      );
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("Mi Perfil"),
+          backgroundColor: AppColors.background,
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text("Esperando datos de usuario..."),
+            ],
+          ),
+        ),
+      );
+    }
+    // Si _targetUserId está vacío para el perfil de otro usuario, es un error de programación o de ruta.
+    if (!widget.isCurrentUserProfile && _targetUserId.isEmpty) {
+      print(
+        "ProfileScreen Build: _targetUserId is empty for other user profile. Showing error state.",
+      );
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            "Error de Perfil",
+            style: TextStyle(color: AppColors.darkGreen),
+          ),
+          backgroundColor: AppColors.background,
+        ),
+        body: const Center(
+          child: Text("No se pudo determinar el usuario a visualizar."),
+        ),
+      );
+    }
+
     final bool isMyProfile =
         widget.isCurrentUserProfile ||
         (authProvider.currentUserId != null &&
             authProvider.currentUserId ==
                 profileProvider.viewedUserProfile?.id);
 
+    if (profileProvider.isLoadingProfile) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            isMyProfile ? "Mi Perfil" : "Cargando...",
+            style: TextStyle(color: AppColors.darkGreen),
+          ),
+          backgroundColor: AppColors.background,
+        ), // Título provisional
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+
+    if (profileProvider.viewedUserProfile == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            isMyProfile ? "Mi Perfil" : "Error",
+            style: TextStyle(color: AppColors.darkGreen),
+          ),
+          backgroundColor: AppColors.background,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              profileProvider.profileErrorMessage ??
+                  'No se pudo cargar el perfil.',
+            ),
+          ),
+        ),
+      );
+    }
     // Tamaños y espaciados responsivos
     final double avatarRadius = ResponsiveUtils.avatarRadius(context);
     final double horizontalPadding = ResponsiveUtils.horizontalPadding(context);
@@ -113,16 +205,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // --- Datos del perfil ---
     final bool isLoading = profileProvider.isLoadingProfile;
     final String? errorMessage = profileProvider.profileErrorMessage;
-    final UserModel? userProfile = profileProvider.viewedUserProfile;
+    final UserModel userProfile =
+        profileProvider.viewedUserProfile!; // ¡Ahora es seguro!
 
-    final String name = userProfile?.name ?? 'nombre';
-    final String username = userProfile?.username ?? "@usuario";
-    final String photoUrl = userProfile?.photoUrl ?? '';
+    final String name = userProfile.name;
+    final String username = userProfile.username;
+    final String photoUrl = userProfile.photoUrl ?? '';
 
-    final int swapCount = userProfile?.swapCount ?? 0;
-    final int ratingCount = userProfile?.numberOfRatings ?? 0;
-    final double averageRating =
-        userProfile?.averageRating ?? 0.0; 
+    final int swapCount = userProfile.swapCount;
+    final int ratingCount = userProfile.numberOfRatings;
+    final double averageRating = userProfile.averageRating;
 
     final List<GarmentModel> garments = profileProvider.viewedUserGarments;
 
@@ -183,7 +275,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body:
-          isLoading && userProfile == null
+          isLoading
               ? const Center(
                 child: CircularProgressIndicator(color: AppColors.primaryGreen),
               )
@@ -193,18 +285,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: EdgeInsets.all(horizontalPadding),
                   child: Text(
                     "Error: $errorMessage",
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ),
-              )
-              : userProfile == null
-              ? Center(
-                child: Padding(
-                  padding: EdgeInsets.all(horizontalPadding),
-                  child: Text(
-                    "No se pudo cargar el perfil.",
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.error,
                     ),
@@ -450,6 +530,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       floatingActionButton:
           widget.isCurrentUserProfile
               ? FloatingActionButton(
+                heroTag: "profileScreenFAB",
                 onPressed: () => context.push(AppRoutes.addGarment),
                 child: const Icon(Icons.add),
               )

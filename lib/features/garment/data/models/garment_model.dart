@@ -11,14 +11,15 @@ class GarmentModel {
   final String?
   description; // Descripción detallada (más para la pantalla de detalle)
   final List<String> imageUrls; // Lista de URLs de las imágenes de la prenda
-  final String? size; // Talla
-  final String? condition; // Condición (Como nuevo, Buen estado, etc.)
+  final String size; // Talla
+  final String condition; // Condición (Como nuevo, Buen estado, etc.)
   final String? category; // Categoría (Camisa, Pantalón, etc.)
   final String? brand; // Marca (Opcional)
   final String? color; // Color (Opcional)
   final String? material; // Material (Opcional)
 
   final Timestamp createdAt; // Cuándo se subió la prenda
+  final Timestamp updateAt; // Cuándo se editó la prenda
   final bool isAvailable;
   // campos location (para filtros de distancia)?
 
@@ -30,14 +31,15 @@ class GarmentModel {
     required this.name,
     this.description,
     required this.imageUrls,
-    this.size,
-    this.condition,
+    required this.size,
+    required this.condition,
     this.category,
     this.brand,
     this.color,
     this.material,
     required this.createdAt,
     required this.isAvailable,
+    required this.updateAt,
   });
 
   // Factory para crear desde un DocumentSnapshot de Firestore
@@ -64,7 +66,8 @@ class GarmentModel {
       color: data['color'],
       material: data['material'],
       createdAt: data['createdAt'],
-      isAvailable: data['isAvailable'], 
+      isAvailable: data['isAvailable'],
+      updateAt: data['updatedAt'],
     );
   }
 
@@ -85,6 +88,7 @@ class GarmentModel {
       'material': material,
       'createdAt': createdAt,
       'isAvailable': isAvailable,
+      'updatedAt': updateAt,
     };
   }
 }

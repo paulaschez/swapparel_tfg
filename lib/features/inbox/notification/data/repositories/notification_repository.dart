@@ -7,7 +7,6 @@ abstract class NotificationRepository {
   Stream<List<NotificationModel>> getUserNotifications(String userId, {int limit = 20});
   Future<void> markNotificationAsRead(String userId, String notificationId);
   Future<void> markAllNotificationsAsRead(String userId);
-  Future<int> getUnreadNotifications(String userId);
 }
 
 class NotificationRepositoryImpl implements NotificationRepository {
@@ -85,10 +84,5 @@ class NotificationRepositoryImpl implements NotificationRepository {
       throw Exception("Failed to mark all notifications as read.");
     }
   }
-  
-  @override
-  Future<int> getUnreadNotifications(String userId) async{
-    // TODO: implement getUnreadNotifications
-    throw UnimplementedError();
-  }
+
 }

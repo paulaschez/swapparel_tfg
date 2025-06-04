@@ -19,6 +19,7 @@ class OfferProvider extends ChangeNotifier {
   final ProfileRepository _profileRepository; // Para contadores de swaps
   final NotificationRepository
   _notificationRepository; // Para enviar notificaciones
+  final FirebaseFirestore _firestore;
 
   OfferProvider({
     required OfferRepository offerRepository,
@@ -27,12 +28,14 @@ class OfferProvider extends ChangeNotifier {
     required GarmentRepository garmentRepository,
     required ProfileRepository profileRepository,
     required NotificationRepository notificationRepository,
+    required FirebaseFirestore firestore,
   }) : _offerRepository = offerRepository,
        _authProvider = authProvider,
        _matchRepository = matchRepository,
        _garmentRepository = garmentRepository,
        _profileRepository = profileRepository,
-       _notificationRepository = notificationRepository;
+       _notificationRepository = notificationRepository,
+       _firestore = firestore;
 
   bool _isProcessingOffer = false;
   String? _offerError;
@@ -71,7 +74,7 @@ class OfferProvider extends ChangeNotifier {
     _setProcessing(true);
 
     final newOffer = OfferModel(
-      id: '', 
+      id: '',
       matchId: matchId,
       offeringUserId: _authProvider.currentUserId!,
       receivingUserId: receivingUserId,
@@ -131,8 +134,6 @@ class OfferProvider extends ChangeNotifier {
     final newStatus = accepted ? OfferStatus.accepted : OfferStatus.declined;
 
     try {
-      await _offerRepository.updateOfferStatus(matchId, offer.id, newStatus);
-
       final String? responderUsername =
           _authProvider.currentUserModel?.displayName;
 
@@ -148,32 +149,65 @@ class OfferProvider extends ChangeNotifier {
         entityId: matchId,
         createdAt: Timestamp.now(),
       );
-      await _notificationRepository.createNotification(offerAnswerNotification);
-      if (accepted) {
-        print("OfferProvider: Oferta aceptada. Completando el intercambio...");
 
-        // 1. Marcar prendas como no disponibles
+      // Lógica para oferta rechazada
+      if (!accepted) {
+        await _offerRepository.updateOfferStatus(matchId, offer.id, newStatus);
+        await _matchRepository.updateMatchFields(matchId, {
+          'matchStatus': MatchStatus.active.toString(),
+          'lastMessageSnippet': "Oferta rechazada",
+          'unreadCounts.${offer.offeringUserId}': FieldValue.increment(1),
+        });
+
+        await _notificationRepository.createNotification(
+          offerAnswerNotification,
+        );
+
+        _setProcessing(false);
+        return true;
+      }
+
+      // Lógica para oferta aceptada (uso de transacción)
+      print(
+        "OfferProvider: Oferta aceptada. Iniciando transacción para completar el intercambio...",
+      );
+
+      await _firestore.runTransaction((transaction) async {
+        // 1. Actualizar el estado de la oferta a completada
+        await _offerRepository.updateOfferStatus(
+          matchId,
+          offer.id,
+          newStatus,
+          transaction: transaction,
+        );
+
+        // 2. Marcar prendas como no disponibles
         List<String> allGarmentIdsInOffer = [
           ...offer.offeredItems.map((item) => item.garmentId),
           ...offer.requestedItems.map((item) => item.garmentId),
         ];
-
         print(
-          "OfferProvider: Prendas a marcar como no disponibles: ${allGarmentIdsInOffer.join(', ')}",
+          "OfferProvider (TX): Prendas a marcar no disponibles: ${allGarmentIdsInOffer.join(', ')}",
         );
-
         for (String garmentId in allGarmentIdsInOffer) {
-          print(
-            "OfferProvider: Intentando actualizar la prenda con ID $garmentId",
+          await _garmentRepository.updateGarmentAvailability(
+            garmentId,
+            false,
+            transaction: transaction,
           );
-          await _garmentRepository.updateGarmentAvailability(garmentId, false);
         }
 
-        // 2. Actualizar contadores de swaps de los usuarios
-        await _profileRepository.incrementSwapCount(offer.offeringUserId);
-        await _profileRepository.incrementSwapCount(offer.receivingUserId);
+        // 3. Actualizar contadores de swaps
+        await _profileRepository.incrementSwapCount(
+          offer.offeringUserId,
+          transaction: transaction,
+        );
+        await _profileRepository.incrementSwapCount(
+          offer.receivingUserId,
+          transaction: transaction,
+        );
 
-        // 3. Actualizar el estado del Match principal a 'completed' y notificar
+        // 4. Actualizar el estado del match principal a completed
         await _matchRepository.updateMatchFields(offer.matchId, {
           'matchStatus': MatchStatus.completed.toString(),
           'offerIdThatCompletedMatch': offer.id,
@@ -183,20 +217,19 @@ class OfferProvider extends ChangeNotifier {
           },
           'lastMessageSnippet': "¡Intercambio acordado!",
           'unreadCounts.${offer.offeringUserId}': FieldValue.increment(1),
-        });
-        print(
-          "OfferProvider: Intercambio completado. Match status actualizado.",
-        );
-      } else {
-        await _matchRepository.updateMatchFields(offer.matchId, {
-          'matchStatus': MatchStatus.active.toString(),
-          'lastMessageSnippet': "Oferta rechazada",
-          'unreadCounts.${offer.offeringUserId}': FieldValue.increment(1),
-        });
-      }
+        }, transaction: transaction);
+      }); // Fin de la transaccion
+
+      print("OfferProvider: Transacción de intercambio completado EXITOSA.");
+      await _notificationRepository.createNotification(offerAnswerNotification);
+      print("OfferProvider: Notificación de oferta aceptada enviada.");
+
       _setProcessing(false);
       return true;
     } catch (e) {
+      print(
+        "OfferProvider Error - respondToOffer (durante transacción o post-tx): ${e.toString()}",
+      );
       _setError("Error al responder a la oferta: ${e.toString()}");
       return false;
     }

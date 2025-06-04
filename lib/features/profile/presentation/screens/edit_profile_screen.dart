@@ -21,46 +21,47 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  late UserModel? _user;
   XFile? _pickedProfileImage;
   Uint8List? _pickedProfileImageBytes;
+  bool _removingCurrentImage = false;
 
   // Controladores para los campos de texto
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
-  // El correo no se edita, se muestra. La ubicación sí.
   final TextEditingController _locationController = TextEditingController();
 
-  final _formKey = GlobalKey<FormState>(); // Para validación si la añades
+  final _formKey = GlobalKey<FormState>();
+  bool _isSavingProfile = false;
+  bool _controllersInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authProvider = Provider.of<AuthProviderC>(context, listen: false);
-      if (authProvider.currentUserId != null) {
-        _user = authProvider.currentUserModel;
-        if (_user != null) {
-          _nameController.text = _user!.name;
-          _usernameController.text = _user!.username;
-          _locationController.text = _user!.location ?? '';
-        } else {
-          print("error se ha no hay cargado un usuario en el modelo");
-        }
-      }
-    });
+    print("EditProfileScreen: initState CALLED");
+  }
+
+  void _initializeControllers(UserModel user) {
+    print(
+      "EditProfileScreen: _initializeControllers CALLED for user: ${user.name}",
+    );
+    _nameController.text = user.name;
+    _usernameController.text = user.username;
+    _locationController.text = user.location ?? '';
+    _controllersInitialized = true;
   }
 
   @override
   void dispose() {
+    print("EditProfileScreen: dispose CALLED");
+
     _nameController.dispose();
     _usernameController.dispose();
     _locationController.dispose();
     super.dispose();
   }
 
-   Future<void> _handleSignOut(BuildContext context) async { 
-    final bool? didConfirm = await showConfirmationDialogFixed( 
+  Future<void> _handleSignOut(BuildContext context) async {
+    final bool? didConfirm = await showConfirmationDialogFixed(
       context: context,
       title: 'Cerrar Sesión',
       content: '¿Estás seguro de que quieres cerrar la sesión actual?',
@@ -69,10 +70,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
 
     if (didConfirm == true) {
-      if (!mounted) return; 
+      if (!mounted) return;
       final authProvider = Provider.of<AuthProviderC>(context, listen: false);
-      await authProvider.signOut();
       print("Usuario cerró sesión y debería ser redirigido por GoRouter.");
+      await authProvider.signOut();
     } else {
       print("Cierre de sesión cancelado por el usuario.");
     }
@@ -85,6 +86,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (image != null) {
       setState(() {
         _pickedProfileImage = image;
+        _removingCurrentImage = false;
         if (kIsWeb) {
           image.readAsBytes().then((bytes) {
             if (mounted) {
@@ -101,7 +103,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  // Método helper para construir cada fila del formulario
+  void _handleRemoveImage() {
+    setState(() {
+      _pickedProfileImage = null;
+      _pickedProfileImageBytes = null;
+      _removingCurrentImage = true;
+    });
+    print("Marcado para eliminar la foto de perfil.");
+  }
+
   Widget _buildProfileDetailRow(
     BuildContext context,
     String label,
@@ -117,7 +127,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       child: Row(
         children: [
           Expanded(
-            flex: 2, // Dar más espacio a la etiqueta
+            flex: 2,
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -132,7 +142,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           ),
           SizedBox(width: ResponsiveUtils.horizontalPadding(context) * 0.5),
           Expanded(
-            flex: 4, // Dar más espacio al campo de texto
+            flex: 4,
             child: TextFormField(
               controller: controller,
               readOnly: readOnly,
@@ -159,12 +169,57 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final double largeVerticalSpacing = ResponsiveUtils.largeVerticalSpacing(
       context,
     );
-
     final authProvider = context.watch<AuthProviderC>();
+    final UserModel? currentUserFromProvider = authProvider.currentUserModel;
+    print(
+      "EditProfileScreen build: authProvider.currentUserId = ${authProvider.currentUserId}",
+    );
+    print(
+      "EditProfileScreen build: currentUserFromProvider is ${currentUserFromProvider == null ? 'NULL' : 'NOT NULL (Name: ${currentUserFromProvider.name})'}",
+    );
 
-    String placeholderPhotoUrl = authProvider.currentUserModel?.photoUrl ?? '';
-    final String email =
-        authProvider.currentUserModel?.email ?? "tucorreo@gmail.com";
+    // --- ESTADO DE CARGA ---
+    if (authProvider.currentUserId == null) {
+      print(
+        "EditProfileScreen build: currentUserId is NULL. Showing 'Not Authenticated'.",
+      );
+      return Scaffold(
+        appBar: AppBar(title: const Text("Editar Perfil")),
+        body: const Center(child: Text("Usuario no autenticado.")),
+      );
+    }
+
+    if (currentUserFromProvider == null) {
+      print(
+        "EditProfileScreen build: currentUserFromProvider is NULL (but userId exists). Showing CircularProgressIndicator.",
+      );
+      return Scaffold(
+        appBar: AppBar(title: const Text("Editar Perfil")),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!_controllersInitialized) {
+      _initializeControllers(currentUserFromProvider);
+    }
+
+    String currentPhotoUrlForDisplay = currentUserFromProvider.photoUrl ?? '';
+    final String email = currentUserFromProvider.email;
+
+    print(
+      "EditProfileScreen build: currentPhotoUrlForDisplay = $currentPhotoUrlForDisplay",
+    );
+    print(
+      "EditProfileScreen build: _removingCurrentImage = $_removingCurrentImage",
+    );
+    print(
+      "EditProfileScreen build: _pickedProfileImage is ${_pickedProfileImage == null ? 'NULL' : 'NOT NULL'}",
+    );
+
+    bool hasVisiblePhoto =
+        (_pickedProfileImage != null) ||
+        (currentPhotoUrlForDisplay.isNotEmpty && !_removingCurrentImage);
+    print("EditProfileScreen build: hasVisiblePhoto = $hasVisiblePhoto");
 
     return Scaffold(
       appBar: AppBar(
@@ -191,243 +246,315 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () async {
-              if (_formKey.currentState!.validate()) {
-                final authP = Provider.of<AuthProviderC>(
-                  context,
-                  listen: false,
-                );
-                final profileP = Provider.of<ProfileProvider>(
-                  context,
-                  listen: false,
-                );
+            onPressed:
+                _isSavingProfile
+                    ? null
+                    : () async {
+                      if (_formKey.currentState!.validate()) {
+                        setState(() {
+                          _isSavingProfile = true;
+                        });
 
-                if (authP.currentUserId == null) {
-                  return;
-                }
-                // TODO: Manejar el estado de carga aquí
-                bool success = await profileP.updateUserProfile(
-                  userId: authProvider.currentUserModel!.id,
-                  name: _nameController.text,
-                  username: _usernameController.text,
-                  location: _locationController.text,
-                  newProfileImage:
-                      _pickedProfileImage,
-                );
+                        final authP = Provider.of<AuthProviderC>(
+                          context,
+                          listen: false,
+                        );
+                        final profileP = Provider.of<ProfileProvider>(
+                          context,
+                          listen: false,
+                        );
 
-                if (!mounted) return;
-                if (success) {
-                  await authP.reloadCurrentUserModel();
+                        if (authP.currentUserId == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Error: Usuario no encontrado."),
+                               backgroundColor: AppColors.error,
+                            ),
+                          );
+                          setState(() {
+                            _isSavingProfile = false;
+                          });
+                          return;
+                        }
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Perfil actualizado con éxito"),
-                    ),
-                  );
-                  context
-                      .pop(); // Ahora pop, después de que AuthProviderC (idealmente) tenga los datos frescos
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        profileP.profileErrorMessage ??
-                            "Error al actualizar el perfil",
+                        String? photoUrlForDeletion;
+                        if ((_pickedProfileImage != null ||
+                                _removingCurrentImage) &&
+                            currentUserFromProvider.photoUrl != null &&
+                            currentUserFromProvider.photoUrl!.isNotEmpty) {
+                          photoUrlForDeletion =
+                              currentUserFromProvider.photoUrl;
+                        }
+
+                        bool success = await profileP.updateUserProfile(
+                          userId: authP.currentUserModel!.id,
+                          name: _nameController.text,
+                          username: _usernameController.text,
+                          location: _locationController.text,
+                          newProfileImage: _pickedProfileImage,
+                          currentUsername: authP.currentUserModel!.username,
+                          removeCurrentPhoto: _removingCurrentImage,
+                          previousPhotoUrl: photoUrlForDeletion,
+                        );
+
+                        if (!mounted) return;
+
+                        if (success) {
+                          await authP.reloadCurrentUserModel();
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Perfil actualizado con éxito"),
+                               backgroundColor: AppColors.primaryGreen,
+                            ),
+                          );
+
+                          context.pop();
+
+                          setState(() {
+                            _isSavingProfile = false;
+                          });
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                profileP.profileErrorMessage ??
+                                    "Error al actualizar el perfil",
+                              ),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
+                      }
+
+                      print(
+                        "Guardar cambios: Nombre: ${_nameController.text}, User: ${_usernameController.text}",
+                      );
+                    },
+            child:
+                _isSavingProfile
+                    ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primaryGreen, // O el color del texto
                       ),
-                      backgroundColor: Colors.redAccent,
+                    )
+                    : Text(
+                      "Guardar",
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.secondary,
+                        fontSize: ResponsiveUtils.fontSize(
+                          context,
+                          baseSize: 18,
+                        ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  );
-                }
-              }
-
-              print(
-                "Guardar cambios: Nombre: ${_nameController.text}, User: ${_usernameController.text}",
-              );
-              
-            },
-            child: Text(
-              "Guardar",
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.secondary,
-                fontSize: ResponsiveUtils.fontSize(context, baseSize: 18),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 600),
-            child: Padding(
-              padding: EdgeInsets.all(
-                ResponsiveUtils.largeVerticalSpacing(context) * 1.5,
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    SizedBox(height: verticalSpacing),
-                    CircleAvatar(
-                      radius: avatarRadius,
-                      backgroundColor: Colors.grey[300],
-                      backgroundImage:
-                          kIsWeb && _pickedProfileImageBytes != null
-                              ? MemoryImage(_pickedProfileImageBytes!)
-                              : _pickedProfileImage != null
-                              ? FileImage(File(_pickedProfileImage!.path))
-                              : (placeholderPhotoUrl.isNotEmpty
-                                  ? CachedNetworkImageProvider(
-                                    placeholderPhotoUrl,
-                                  )
-                                  : null),
-                      child:
-                          (_pickedProfileImage == null &&
-                                  placeholderPhotoUrl.isEmpty)
-                              ? Icon(
-                                Icons.person,
-                                size: avatarRadius * 0.9,
-                                color: Colors.white,
-                              )
-                              : null,
-                    ),
-                    TextButton(
-                      onPressed: () async {
-                        _handleImageSelection();
-                      },
-                      child: Text(
-                        "Cambiar foto",
-                        style: TextStyle(
-                          color: AppColors.primaryGreen,
-                          fontSize: ResponsiveUtils.fontSize(
-                            context,
-                            baseSize: 15,
-                          ),
-                          fontWeight: FontWeight.w700,
-                        ),
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SingleChildScrollView(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 600),
+              child: Padding(
+                padding: EdgeInsets.all(
+                  ResponsiveUtils.largeVerticalSpacing(context) * 1.5,
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      SizedBox(height: verticalSpacing),
+                      CircleAvatar(
+                        radius: avatarRadius,
+                        backgroundColor: Colors.grey[300],
+                        backgroundImage:
+                            _removingCurrentImage
+                                ? null
+                                : kIsWeb && _pickedProfileImageBytes != null
+                                ? MemoryImage(_pickedProfileImageBytes!)
+                                : _pickedProfileImage != null
+                                ? FileImage(File(_pickedProfileImage!.path))
+                                : (currentPhotoUrlForDisplay.isNotEmpty
+                                    ? CachedNetworkImageProvider(
+                                      currentPhotoUrlForDisplay,
+                                    )
+                                    : null),
+                        child:
+                            (_pickedProfileImage ==
+                                        null && // No hay imagen local seleccionada Y
+                                    (currentPhotoUrlForDisplay.isEmpty ||
+                                        _removingCurrentImage)) // (no hay URL de red O se está eliminando la actual)
+                                ? Icon(
+                                  Icons.person,
+                                  size: avatarRadius * 0.9,
+                                  color:
+                                      Colors
+                                          .white, 
+                                )
+                                : null, // No mostrar child si hay una imagen local o una de red (y no se está eliminando)
                       ),
-                    ),
-                    SizedBox(height: largeVerticalSpacing),
-                    const Divider(),
-                    SizedBox(height: verticalSpacing * 1.2),
-                    _buildProfileDetailRow(
-                      context,
-                      "Nombre:",
-                      _nameController,
-                      (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Debe introducir un nombre.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const Divider(height: 1),
-                    _buildProfileDetailRow(
-                      context,
-                      "Nombre de usuario:",
-                      _usernameController,
-                      (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Debe introducir el nombre de usuario';
-                        }
-                        return null;
-                      },
-                    ),
-                    const Divider(height: 1),
-                    // Correo (no editable)
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical:
-                            ResponsiveUtils.verticalSpacing(context) * 0.75,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              "Correo:",
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w500,
-                                fontSize: ResponsiveUtils.fontSize(
-                                  context,
-                                  baseSize: 15,
-                                  maxSize: 17,
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width:
-                                ResponsiveUtils.horizontalPadding(context) *
-                                0.5,
-                          ),
-                          Expanded(
-                            flex: 4,
-                            child: Text(
-                              email, // Mostrar el email actual
-                              style: TextStyle(
-                                fontSize: ResponsiveUtils.fontSize(
-                                  context,
-                                  baseSize: 15,
-                                  maxSize: 17,
-                                ),
-                                overflow: TextOverflow.clip,
-                                color:
-                                    Colors
-                                        .grey[600], // Indicar que no es editable
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(height: 1),
-                    _buildProfileDetailRow(
-                      context,
-                      "Ubicación:",
-                      _locationController,
-                      (value) => null,
-                    ),
-                    SizedBox(height: largeVerticalSpacing * 1.5),
-                    // --- BOTÓN CERRAR SESIÓN ---
-                    SizedBox(
-                      width: double.infinity,
-                      child: TextButton(
+                      TextButton(
                         onPressed: () async {
-                          _handleSignOut(context);
-                          print("Cerrar Sesión presionado");
+                          _handleImageSelection();
                         },
-                        style: TextButton.styleFrom(
-                          backgroundColor: AppColors.likeRed.withValues(
-                            alpha: 0.1,
-                          ), // Un fondo rojo muy sutil
-                          padding: EdgeInsets.symmetric(
-                            vertical: verticalSpacing * 0.9,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
                         child: Text(
-                          "Cerrar Sesión",
+                          "Cambiar foto",
                           style: TextStyle(
-                            color:
-                                AppColors
-                                    .likeRed, // Rojo para indicar acción de "salida"
+                            color: AppColors.primaryGreen,
                             fontSize: ResponsiveUtils.fontSize(
                               context,
-                              baseSize: 16,
-                              maxSize: 18,
+                              baseSize: 15,
                             ),
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
-                    ),
-                    SizedBox(height: largeVerticalSpacing),
-                  ],
+                      if (hasVisiblePhoto) // Mostrar solo si hay una foto que se pueda eliminar
+                        TextButton(
+                          onPressed: _handleRemoveImage,
+                          child: Text(
+                            "Eliminar foto de perfil",
+                            style: TextStyle(
+                              color:
+                                  AppColors
+                                      .likeRed, // Usar un color distintivo para eliminar
+                              fontSize: ResponsiveUtils.fontSize(
+                                context,
+                                baseSize: 14,
+                              ),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      SizedBox(height: largeVerticalSpacing),
+                      const Divider(),
+                      SizedBox(height: verticalSpacing * 1.2),
+                      _buildProfileDetailRow(
+                        context,
+                        "Nombre:",
+                        _nameController,
+                        (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Debe introducir un nombre.';
+                          }
+                          return null;
+                        },
+                      ),
+                      const Divider(height: 1),
+                      _buildProfileDetailRow(
+                        context,
+                        "Nombre de usuario:",
+                        _usernameController,
+                        (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Debe introducir el nombre de usuario';
+                          }
+                          return null;
+                        },
+                      ),
+                      const Divider(height: 1),
+                      // Correo (no editable)
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          vertical:
+                              ResponsiveUtils.verticalSpacing(context) * 0.75,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                "Correo:",
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: ResponsiveUtils.fontSize(
+                                    context,
+                                    baseSize: 15,
+                                    maxSize: 17,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(
+                              width:
+                                  ResponsiveUtils.horizontalPadding(context) *
+                                  0.5,
+                            ),
+                            Expanded(
+                              flex: 4,
+                              child: Text(
+                                email, // Mostrar el email actual
+                                style: TextStyle(
+                                  fontSize: ResponsiveUtils.fontSize(
+                                    context,
+                                    baseSize: 15,
+                                    maxSize: 17,
+                                  ),
+                                  overflow: TextOverflow.clip,
+                                  color:
+                                      Colors
+                                          .grey[600], // Indicar que no es editable
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      _buildProfileDetailRow(
+                        context,
+                        "Ubicación:",
+                        _locationController,
+                        (value) => null,
+                      ),
+                      SizedBox(height: largeVerticalSpacing * 1.5),
+                      // --- BOTÓN CERRAR SESIÓN ---
+                      SizedBox(
+                        width: double.infinity,
+                        child: TextButton(
+                          onPressed: () async {
+                            _handleSignOut(context);
+                            print("Cerrar Sesión presionado");
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: AppColors.likeRed.withValues(
+                              alpha: 0.1,
+                            ), // Un fondo rojo muy sutil
+                            padding: EdgeInsets.symmetric(
+                              vertical: verticalSpacing * 0.9,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            "Cerrar Sesión",
+                            style: TextStyle(
+                              color:
+                                  AppColors
+                                      .likeRed, // Rojo para indicar acción de "salida"
+                              fontSize: ResponsiveUtils.fontSize(
+                                context,
+                                baseSize: 16,
+                                maxSize: 18,
+                              ),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: largeVerticalSpacing),
+                    ],
+                  ),
                 ),
               ),
             ),
