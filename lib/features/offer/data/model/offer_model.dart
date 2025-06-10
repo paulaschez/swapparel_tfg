@@ -40,7 +40,7 @@ class OfferModel {
   final List<OfferedItemInfo> requestedItems; // Prendas solicitadas de receivingUserId
   final Timestamp createdAt;
   Timestamp? updatedAt;          // Para saber cuándo se actualizó el estado
-  OfferStatus status;
+  OfferStatus status; // Estado en el que se encuentra la oferta (pendiente, aceptada, rechazada)
 
   OfferModel({
     required this.id,

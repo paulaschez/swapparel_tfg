@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/repositories/feed_repository.dart';
 import '../../../garment/data/models/garment_model.dart';
-import 'package:swapparel/app/config/constants/firestore_collections.dart';
+import 'package:swapparel/core/constants/firestore_collections.dart';
 
 class FeedProvider extends ChangeNotifier {
   final FeedRepository _feedRepository;
@@ -100,7 +100,7 @@ class FeedProvider extends ChangeNotifier {
 
     // Vaciar la lista tanto para si es carga inicial o se están obteniendo más prendas (actualizar el cardsWiper)
 
-    _garments = [];
+    if(!isInitialLoad) _garments = [];
     _isLoading = true;
     notifyListeners();
 
@@ -295,7 +295,7 @@ class FeedProvider extends ChangeNotifier {
     if (!backendSuccess) {
       _likedGarmentIds.remove(
         garment.id,
-      ); // Quitar de los likes si falló el backend
+      ); 
 
       notifyListeners();
     }

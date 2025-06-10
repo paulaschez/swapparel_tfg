@@ -1,0 +1,15 @@
+const String ownerIdField  = 'ownerId';
+const String ownerUsernameField = 'ownerUsername';
+const String ownerPhotoUrlField = 'ownerPhotoUrl';
+const String nameField = 'name';
+const String descripctionField = 'description';
+const String imageUrlsField = 'imageUrls';
+const String sizeField = 'size';
+const String conditionField = 'condition';
+const String categoryField = 'category';
+const String brandField = 'brand';
+const String colorField = 'color';
+const String materialField = 'material';
+const String createdAtField = 'createdAt';
+const String updatedAtField = 'updatedAt';
+const String isAvailableField = 'isAvailable';

@@ -10,10 +10,10 @@ class AuthProviderC extends ChangeNotifier {
   final ValueNotifier<bool> isAuthenticatedNotifier;
 
   AuthProviderC({required AuthRepository authRepository})
-      : _authRepository = authRepository,
-        isAuthenticatedNotifier = ValueNotifier<bool>(
-          authRepository.currentUser != null,
-        ) {
+    : _authRepository = authRepository,
+      isAuthenticatedNotifier = ValueNotifier<bool>(
+        authRepository.currentUser != null,
+      ) {
     _authRepository.authStateChanges.listen((User? firebaseUser) async {
       print(
         "AuthProviderC Listen (authStateChanges): Received FirebaseUser: ${firebaseUser?.uid}",
@@ -25,7 +25,9 @@ class AuthProviderC extends ChangeNotifier {
       }
 
       if (newAuthStatus) {
-        if (_previousFirebaseUserId != firebaseUser.uid || _currentUserModel == null) { // Añadido _currentUserModel == null para cargar si no existe
+        if (_previousFirebaseUserId != firebaseUser.uid ||
+            _currentUserModel == null) {
+          // Añadido _currentUserModel == null para cargar si no existe
           print(
             "AuthProviderC Listen: Fetching UserModel for ${firebaseUser.uid}",
           );
@@ -34,7 +36,8 @@ class AuthProviderC extends ChangeNotifier {
         }
       } else {
         print("AuthProviderC Listen: User is null. Clearing UserModel.");
-        if (_currentUserModel != null || _previousFirebaseUserId != null) { // Solo limpiar y notificar si había algo
+        if (_currentUserModel != null || _previousFirebaseUserId != null) {
+          // Solo limpiar y notificar si había algo
           _currentUserModel = null;
           _previousFirebaseUserId = null;
           notifyListeners();
@@ -42,7 +45,8 @@ class AuthProviderC extends ChangeNotifier {
       }
     });
 
-    if (isAuthenticatedNotifier.value && _authRepository.currentUserId != null) {
+    if (isAuthenticatedNotifier.value &&
+        _authRepository.currentUserId != null) {
       _previousFirebaseUserId = _authRepository.currentUserId;
       _fetchAndSetCurrentUserModel(_authRepository.currentUserId!);
     }
@@ -66,10 +70,12 @@ class AuthProviderC extends ChangeNotifier {
   }) async {
     _setLoading(true);
     try {
-      final bool emailExists = await _authRepository.checkIfEmailExists(email.trim());
+      final bool emailExists = await _authRepository.checkIfEmailExists(
+        email.trim(),
+      );
       if (emailExists) {
         _setError("Este correo electrónico ya está registrado.");
-        return false; 
+        return false;
       }
 
       final userCredential = await _authRepository.signUpWithEmailPassword(
@@ -79,12 +85,15 @@ class AuthProviderC extends ChangeNotifier {
       );
 
       if (userCredential?.user != null) {
-        print("AuthProviderC: SignUp success, waiting for authStateChanges to fetch UserModel.");
-        _setError(null); 
+        print(
+          "AuthProviderC: SignUp success, waiting for authStateChanges to fetch UserModel.",
+        );
+        _setError(null);
         return true;
       } else {
-
-        if (_errorMessage == null) _setError("El registro falló por un motivo desconocido.");
+        if (_errorMessage == null) {
+          _setError("El registro falló por un motivo desconocido.");
+        }
         return false;
       }
     } on FirebaseAuthException catch (e) {
@@ -96,32 +105,31 @@ class AuthProviderC extends ChangeNotifier {
       _setError("Ocurrió un error inesperado durante el registro.");
       return false;
     } finally {
-      _setLoading(false); 
+      _setLoading(false);
     }
   }
 
   Future<bool> signIn({required String email, required String password}) async {
     _setLoading(true);
     try {
-      final userModel = await _authRepository.signInWithEmailPassword(
-        email.trim(),
-        password.trim(),
+      // Llama al repositorio para la lógica de Firebase
+      final userModel = await _authRepository.signInWithEmailPassword(email.trim(), password.trim(),
       );
-
       if (userModel != null) {
-        print("AuthProviderC: SignIn success, waiting for authStateChanges to fetch UserModel.");
         _setError(null);
-        return true;
+        return true; // El listener de authStateChanges se encargará del resto
       } else {
-        if (_errorMessage == null) _setError("El inicio de sesión falló por un motivo desconocido.");
+        if (_errorMessage == null) {
+          _setError("El inicio de sesión falló por un motivo desconocido.");
+        }
         return false;
       }
     } on FirebaseAuthException catch (e) {
-      print("FirebaseAuthException en signIn: ${e.code} - ${e.message}");
+      // Captura y mapea errores específicos de Firebase
       _setError(_mapFirebaseAuthExceptionMessage(e));
       return false;
     } catch (e) {
-      print("Error genérico en signIn: $e");
+      // Maneja errores genéricos
       _setError("Ocurrió un error inesperado. Por favor, inténtalo de nuevo.");
       return false;
     } finally {
@@ -133,7 +141,7 @@ class AuthProviderC extends ChangeNotifier {
     _setLoading(true);
     try {
       await _authRepository.sendPasswordResetEmail(email: email.trim());
-      _setError(null); 
+      _setError(null);
       return true;
     } on FirebaseAuthException catch (e) {
       print("FirebaseAuthException en resetPassword: ${e.code} - ${e.message}");
@@ -141,7 +149,9 @@ class AuthProviderC extends ChangeNotifier {
       return false;
     } catch (e) {
       print("Error genérico en resetPassword: $e");
-      _setError("Ocurrió un error al intentar enviar el correo de restablecimiento.");
+      _setError(
+        "Ocurrió un error al intentar enviar el correo de restablecimiento.",
+      );
       return false;
     } finally {
       _setLoading(false);
@@ -151,23 +161,23 @@ class AuthProviderC extends ChangeNotifier {
   Future<void> signOut() async {
     _setLoading(true); // Opcional: mostrar loading durante el signOut
     await _authRepository.signOut();
-   
+
     _setLoading(false);
   }
 
   // --- Métodos privados ---
   void _setLoading(bool value) {
-    if (_isLoading == value) return; 
+    if (_isLoading == value) return;
     _isLoading = value;
     if (value) {
-      _errorMessage = null; 
+      _errorMessage = null;
     }
     notifyListeners();
   }
 
   void _setError(String? message) {
     _errorMessage = message;
-  
+
     notifyListeners();
   }
 
@@ -181,7 +191,7 @@ class AuthProviderC extends ChangeNotifier {
         return 'No se encontró un usuario con este correo electrónico.';
       case 'wrong-password':
         return 'La contraseña es incorrecta.';
-      case 'invalid-credential': 
+      case 'invalid-credential':
         return 'Correo electrónico o contraseña incorrectos. Verifica tus datos.';
       case 'email-already-in-use':
         return 'Este correo electrónico ya está en uso por otra cuenta.';
@@ -196,7 +206,7 @@ class AuthProviderC extends ChangeNotifier {
       case 'missing-email':
         return 'Por favor, introduce tu correo electrónico.';
       default:
-        print("Código de error no mapeado de FirebaseAuth: ${e.code}"); 
+        print("Código de error no mapeado de FirebaseAuth: ${e.code}");
         return 'Ocurrió un error (${e.code}). Inténtalo de nuevo.';
     }
   }
@@ -206,24 +216,34 @@ class AuthProviderC extends ChangeNotifier {
     String? previousError = _errorMessage;
 
     try {
-      _currentUserModel = await _authRepository.getCurrentUserModel(); 
+      _currentUserModel = await _authRepository.getCurrentUserModel();
       if (_currentUserModel == null && userId.isNotEmpty) {
-          print("AuthProviderC WARN: Firebase user $userId exists, but UserModel is null from repository.");
-          _setError("No se pudieron cargar los datos de tu perfil. Intenta reiniciar la app.");
+        print(
+          "AuthProviderC WARN: Firebase user $userId exists, but UserModel is null from repository.",
+        );
+        _setError(
+          "No se pudieron cargar los datos de tu perfil. Intenta reiniciar la app.",
+        );
       } else {
-        print("AuthProviderC: UserModel fetched/updated: ${_currentUserModel?.name}");
-        if(previousError != null) _setError(null); 
+        print(
+          "AuthProviderC: UserModel fetched/updated: ${_currentUserModel?.name}",
+        );
+        if (previousError != null) _setError(null);
       }
     } catch (e) {
       print("AuthProviderC: Error fetching UserModel: $e");
-      _currentUserModel = null; 
+      _currentUserModel = null;
       _setError("No se pudieron cargar los datos de tu perfil.");
     }
 
-    bool modelChanged = previousModel?.id != _currentUserModel?.id ||
-                       (previousModel == null && _currentUserModel != null) ||
-                       (previousModel != null && _currentUserModel == null) ||
-                       (previousModel != null && _currentUserModel != null && previousModel.toJson().toString() != _currentUserModel!.toJson().toString());
+    bool modelChanged =
+        previousModel?.id != _currentUserModel?.id ||
+        (previousModel == null && _currentUserModel != null) ||
+        (previousModel != null && _currentUserModel == null) ||
+        (previousModel != null &&
+            _currentUserModel != null &&
+            previousModel.toJson().toString() !=
+                _currentUserModel!.toJson().toString());
 
     if (modelChanged || _errorMessage != previousError) {
       notifyListeners();

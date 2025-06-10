@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:swapparel/core/constants/firestore_garment_fields.dart';
 
 class GarmentModel {
   final String id; // ID del documento de la prenda en Firestore
@@ -6,7 +7,6 @@ class GarmentModel {
   final String
   ownerUsername; // Username del propietario (para mostrar en la tarjeta)
   final String? ownerPhotoUrl; // URL de la foto del propietario (opcional)
-
   final String name; // Nombre/Título de la prenda
   final String?
   description; // Descripción detallada (más para la pantalla de detalle)
@@ -17,11 +17,9 @@ class GarmentModel {
   final String? brand; // Marca (Opcional)
   final String? color; // Color (Opcional)
   final String? material; // Material (Opcional)
-
   final Timestamp createdAt; // Cuándo se subió la prenda
   final Timestamp updateAt; // Cuándo se editó la prenda
   final bool isAvailable;
-  // campos location (para filtros de distancia)?
 
   GarmentModel({
     required this.id,
@@ -53,42 +51,42 @@ class GarmentModel {
 
     return GarmentModel(
       id: doc.id,
-      ownerId: data['ownerId'] ?? '',
-      ownerUsername: data['ownerUsername'] ?? 'Usuario Desconocido',
-      ownerPhotoUrl: data['ownerPhotoUrl'],
-      name: data['name'] ?? 'Sin Nombre',
-      description: data['description'],
-      imageUrls: List<String>.from(data['imageUrls'] ?? []),
-      size: data['size'],
-      condition: data['condition'],
-      category: data['category'],
-      brand: data['brand'],
-      color: data['color'],
-      material: data['material'],
-      createdAt: data['createdAt'],
-      isAvailable: data['isAvailable'],
-      updateAt: data['updatedAt'],
+      ownerId: data[ownerIdField] ?? '',
+      ownerUsername: data[ownerUsernameField] ?? 'Usuario Desconocido',
+      ownerPhotoUrl: data[ownerPhotoUrlField],
+      name: data[nameField] ?? 'Sin Nombre',
+      description: data[descripctionField],
+      imageUrls: List<String>.from(data[imageUrlsField] ?? []),
+      size: data[sizeField],
+      condition: data[conditionField],
+      category: data[categoryField],
+      brand: data[brandField],
+      color: data[colorField],
+      material: data[materialField],
+      createdAt: data[createdAtField],
+      isAvailable: data[isAvailableField],
+      updateAt: data[updatedAtField],
     );
   }
 
   // Método para convertir a un Map para Firestore
   Map<String, dynamic> toJson() {
     return {
-      'ownerId': ownerId,
-      'ownerUsername': ownerUsername,
-      'ownerPhotoUrl': ownerPhotoUrl,
-      'name': name,
-      'description': description,
-      'imageUrls': imageUrls,
-      'size': size,
-      'condition': condition,
-      'category': category,
-      'brand': brand,
-      'color': color,
-      'material': material,
-      'createdAt': createdAt,
-      'isAvailable': isAvailable,
-      'updatedAt': updateAt,
+      ownerIdField: ownerId,
+      ownerUsernameField: ownerUsername,
+      ownerPhotoUrlField: ownerPhotoUrl,
+      nameField: name,
+      descripctionField: description,
+      imageUrlsField: imageUrls,
+      sizeField: size,
+      conditionField: condition,
+      categoryField: category,
+      brandField: brand,
+      colorField: color,
+      materialField: material,
+      createdAtField: createdAt,
+      isAvailableField: isAvailable,
+      updatedAtField: updateAt,
     };
   }
 }

@@ -24,7 +24,7 @@ class _MainAppScreenState extends State<MainAppScreen> {
     _widgetOptions = <Widget>[
       const FeedScreen(), 
       const InboxScreen(),
-     ProfileScreen( isCurrentUserProfile: true), // Llama al método para construir ProfileScreen
+     ProfileScreen( isCurrentUserProfile: true), 
     ];
   }
 
@@ -57,16 +57,14 @@ class _MainAppScreenState extends State<MainAppScreen> {
           currentIndex: _selectedIndex, 
           onTap: _onItemTapped,      
           
-          // --- Ítems con lógica de icono lleno/contorno ---
           items: <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-              // Elige el icono basado en si este item (índice 0) está seleccionado
               icon: Icon(_selectedIndex == 0 ? Icons.home_filled : Icons.home_outlined),
-              label: 'Feed', // La etiqueta es útil para accesibilidad aunque no se muestre
+              label: 'Feed', 
             ),
             BottomNavigationBarItem(
               icon: Icon(_selectedIndex == 1 ? Icons.chat_bubble : Icons.chat_bubble_outline),
-              label: 'Chat',
+              label: 'Inbox',
             ),
             BottomNavigationBarItem(
               icon: Icon(_selectedIndex == 2 ? Icons.person : Icons.person_outline),

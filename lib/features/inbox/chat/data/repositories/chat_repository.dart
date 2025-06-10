@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/message_model.dart';
-import '../../../../../app/config/constants/firestore_collections.dart';
+import '../../../../../core/constants/firestore_collections.dart';
 
 abstract class ChatRepository {
   // Obtiene un stream de mensajes para un chat específico, ordenados por tiempo.
@@ -104,7 +104,6 @@ class ChatRepositoryImpl implements ChatRepository {
 
       final messageData = MessageModel(
         id: '',
-        chatId: chatId,
         senderId: senderId,
 
         text: text.trim(),

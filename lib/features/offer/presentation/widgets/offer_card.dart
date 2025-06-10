@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:swapparel/app/config/theme/app_theme.dart';
+import 'package:swapparel/core/utils/date_formatter.dart';
 import 'package:swapparel/core/utils/responsive_utils.dart';
 import 'package:swapparel/features/offer/data/model/offer_model.dart';
-import 'package:timeago/timeago.dart' as timeago;
 
 class OfferCardInChat extends StatelessWidget {
   final OfferModel offer;
@@ -19,7 +19,6 @@ class OfferCardInChat extends StatelessWidget {
     required this.onDecline,
   });
 
-  //TODO: MANEJAR FECHAS MENSAJES CON TIMEAGO
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -29,6 +28,9 @@ class OfferCardInChat extends StatelessWidget {
         offer.status == OfferStatus.pending;
 
     String headerText;
+    final String formattedDate = DateFormatter.formatMessageBubbleTimestamp(
+       offer.updatedAt!,
+    );
 
     if (isMyOffer) {
       headerText = "Has propuesto un intercambio";
@@ -87,7 +89,7 @@ class OfferCardInChat extends StatelessWidget {
           ),
           border: Border.all(
             color: AppColors.primaryGreen.withValues(alpha: 0.3),
-          ), // Un borde sutil
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.grey.withValues(alpha: 0.2),
@@ -152,11 +154,7 @@ class OfferCardInChat extends StatelessWidget {
                 ),
                 if (offer.updatedAt != null) // Mostrar solo si updatedAt existe
                   Text(
-                    timeago.format(
-                      offer.updatedAt!.toDate(),
-                      locale: 'es',
-                      allowFromNow: true,
-                    ),
+                    formattedDate,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: Colors.grey[600],
                       fontSize: ResponsiveUtils.fontSize(

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:swapparel/core/utils/date_formatter.dart';
 import 'package:swapparel/core/utils/responsive_utils.dart';
 import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
-import 'package:timeago/timeago.dart' as timeago;
 import '../provider/chat_list_provider.dart';
 import '../../../../match/data/models/match_model.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Para avatares
@@ -95,14 +95,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
         final String lastMessage =
             conversation.lastMessageSnippet ?? "Inicia la conversación...";
-        // Formatear el timestamp
-        final String timeAgo =
-            conversation.lastActivityAt != null
-                ? timeago.format(
-                  conversation.lastActivityAt!.toDate(),
-                  locale: 'es',
-                ) // Configura el locale
-                : "Ahora";
+        
 
         int unreadCountForThisChat = 0;
 
@@ -161,7 +154,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                timeAgo,
+                DateFormatter.formatListDate(conversation.lastActivityAt),
                 style: TextStyle(
                   fontSize: ResponsiveUtils.fontSize(
                     context,

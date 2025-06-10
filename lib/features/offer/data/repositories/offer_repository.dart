@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../model/offer_model.dart';
-import '../../../../../app/config/constants/firestore_collections.dart'; // Para matchesCollection
+import '../../../../core/constants/firestore_collections.dart'; // Para matchesCollection
 
 abstract class OfferRepository {
   Future<void> createOffer(String matchId, OfferModel offerData);

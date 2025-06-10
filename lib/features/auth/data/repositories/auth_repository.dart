@@ -1,12 +1,10 @@
-// ignore_for_file: avoid_print
 
-import 'package:swapparel/app/config/constants/firestore_collections.dart';
+import 'package:swapparel/core/constants/firestore_collections.dart';
 
-import '/../core/services/local_storage_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_model.dart';
-import 'package:swapparel/app/config/constants/firestore_user_fields.dart';
+import 'package:swapparel/core/constants/firestore_user_fields.dart';
 import 'package:uuid/uuid.dart';
 
 abstract class AuthRepository {
@@ -32,16 +30,13 @@ class AuthRepositoryImpl implements AuthRepository {
   // Dependencias
   final FirebaseAuth _firebaseAuth;
   final FirebaseFirestore _firestore;
-  final ILocalStorageService _localStorageService;
 
   // Constructor que recibe las dependencias
   AuthRepositoryImpl({
     required FirebaseAuth firebaseAuth,
     required FirebaseFirestore firestore,
-    required ILocalStorageService localStorageService,
   }) : _firebaseAuth = firebaseAuth,
-       _firestore = firestore,
-       _localStorageService = localStorageService;
+       _firestore = firestore;
 
   @override
   Future<UserCredential?> signUpWithEmailPassword({
@@ -82,15 +77,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
         print("AuthRepo: User data saved to Firestore for UID: $userId");
 
-        /* // Guardar en SharedPreferences
-        await _localStorageService.saveUserId(userId);
-        await _localStorageService.saveUserEmail(email);
-        await _localStorageService.saveUserName(name);
-        await _localStorageService.saveUserAtUsername(initialUsername);
-        await _localStorageService.saveUserPhotoUrl(null);
-
-        print("AuthRepo: User data saved to cache for UID: $userId"); */
-
         return userCredential; // Devuelve el UserCredential si todo fue bien
       }
       print(
@@ -128,24 +114,12 @@ class AuthRepositoryImpl implements AuthRepository {
         if (docSnapshot.exists && docSnapshot.data() != null) {
           final userModel = UserModel.fromFirestore(docSnapshot);
 
-         /*  // Guardar datos en Shared Preferences mediante LocalStorageService
-          await _localStorageService.saveUserId(userModel.id);
-          await _localStorageService.saveUserEmail(userModel.email);
-          await _localStorageService.saveUserName(userModel.name);
-          await _localStorageService.saveUserAtUsername(userModel.username);
-          if (userModel.photoUrl != null) {
-            await _localStorageService.saveUserPhotoUrl(userModel.photoUrl);
-          } else {
-            await _localStorageService.saveUserPhotoUrl(null);
-          }
- */
           return userModel;
         } else {
           print(
             "AuthRepo SignIn Warning: User $userId authenticated but no data found.",
           );
           await _firebaseAuth.signOut(); // Cierra sesión si no hay datos
-          await _localStorageService.clearUserData(); // Limpia caché
           throw Exception("User data not found after login.");
         }
       }
@@ -153,12 +127,10 @@ class AuthRepositoryImpl implements AuthRepository {
       return null;
     } on FirebaseAuthException catch (e) {
       print("AuthRepo SignIn Error: ${e.code}");
-      await _localStorageService
-          .clearUserData(); // Limpia caché en error de login
+      
       rethrow;
     } catch (e) {
       print("AuthRepo SignIn General Error: $e");
-      await _localStorageService.clearUserData(); // Limpia caché
       throw Exception("Failed to complete sign in process.");
     }
   }
@@ -167,7 +139,6 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<void> signOut() async {
     try {
       await _firebaseAuth.signOut();
-      await _localStorageService.clearUserData();
     } catch (e) {
       print("Error signing out: $e");
     }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:swapparel/app/config/theme/app_theme.dart';
+import 'package:swapparel/core/utils/date_formatter.dart';
 import 'package:swapparel/features/inbox/chat/data/models/message_model.dart';
 import 'package:swapparel/features/offer/data/model/offer_model.dart';
 import 'package:swapparel/features/offer/presentation/provider/offer_provider.dart';
@@ -103,7 +104,7 @@ class _ChatScreenState extends State<ChatScreen> {
       );
       return match.participantIds.isNotEmpty
           ? match.participantIds[0]
-          : ''; // O manejar el error de otra forma
+          : ''; 
     }
     if (match.participantIds[0] == currentUserId) {
       return match.participantIds[1];
@@ -122,6 +123,33 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       } else {}
     });
+  }
+
+  Widget _buildDateSeparator(DateTime date) {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 12.0),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+        decoration: BoxDecoration(
+          color: AppColors.lightGreen.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(15.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 5,
+            ),
+          ],
+        ),
+        child: Text(
+          DateFormatter.formatSeparatorDate(date), 
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[600],
+            fontSize: 12,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -287,7 +315,6 @@ class _ChatScreenState extends State<ChatScreen> {
             Expanded(
               child: Builder(
                 builder: (context) {
-                  // Usar Builder para el log de mensajes
                   if (chatDetailProvider.isLoadingMessages &&
                       chatDetailProvider.messages.isEmpty) {
                     return const Center(child: CircularProgressIndicator());
@@ -315,8 +342,12 @@ class _ChatScreenState extends State<ChatScreen> {
                       padding: const EdgeInsets.all(10.0),
                       itemCount: chatDetailProvider.timelineItems.length,
                       itemBuilder: (context, index) {
-                        final item = chatDetailProvider.timelineItems[index];
+                        final item =
+                            chatDetailProvider.groupedTimelineItems[index];
 
+                        if (item is DateSeparatorItem) {
+                          return _buildDateSeparator(item.date);
+                        }
                         if (item is MessageItem) {
                           final message = item.message;
                           final bool isMe = message.senderId == authUserId;
@@ -331,7 +362,6 @@ class _ChatScreenState extends State<ChatScreen> {
                             offer: offer,
                             currentUserId: authUserId!,
                             onAccept: (OfferModel offerToAccept) async {
-                              // <--- MARCAR COMO ASYNC
                               print(
                                 "ChatScreen: Aceptando oferta ${offerToAccept.id}",
                               );
@@ -384,8 +414,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                 );
                               } else if (success && mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("Oferta rechazada"),
-                                   backgroundColor: AppColors.primaryGreen,),
+                                  SnackBar(
+                                    content: Text("Oferta rechazada"),
+                                    backgroundColor: AppColors.primaryGreen,
+                                  ),
                                 );
                               }
                             },
@@ -503,4 +535,9 @@ class RatingPromptItem extends ChatTimelineItem {
     required this.userToRateName,
     required Timestamp createdAt,
   }) : super(createdAt);
+}
+
+class DateSeparatorItem extends ChatTimelineItem {
+  final DateTime date;
+  DateSeparatorItem(this.date) : super(Timestamp.fromDate(date)); 
 }

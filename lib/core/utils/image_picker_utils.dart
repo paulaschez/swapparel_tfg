@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart'
 class ImagePickerUtils {
   final ImagePicker _picker = ImagePicker();
 
-
   Future<XFile?> pickImage(BuildContext context) async {
     bool isMobilePlatform =
         (defaultTargetPlatform == TargetPlatform.android ||
@@ -27,7 +26,6 @@ class ImagePickerUtils {
                   leading: const Icon(Icons.photo_library),
                   title: const Text('Subir de la galería'),
                   onTap: () {
-                    
                     Navigator.of(bc).pop(ImageSource.gallery);
                     print('Seleccionar de galería');
                   },
@@ -47,7 +45,7 @@ class ImagePickerUtils {
       );
     }
 
-    if(imageSource != null){
+    if (imageSource != null) {
       return _pickImage(imageSource);
     }
 
@@ -69,8 +67,6 @@ class ImagePickerUtils {
       }
     } catch (e) {
       print("ImagePickerUtils Error - _pickImage: $e");
-     
-      //TODO: MANEJO DE ERRORES
     }
     return null;
   }

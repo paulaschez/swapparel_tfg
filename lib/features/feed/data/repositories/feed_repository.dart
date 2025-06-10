@@ -1,8 +1,9 @@
 // ignore_for_file: avoid_print
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:swapparel/core/constants/firestore_garment_fields.dart';
 import '../../../garment/data/models/garment_model.dart';
-import 'package:swapparel/app/config/constants/firestore_collections.dart';
+import 'package:swapparel/core/constants/firestore_collections.dart';
 
 abstract class FeedRepository {
   // Obtiene un lote de prendas para el feed, excluyendo las del usuario actual.
@@ -43,11 +44,11 @@ class FeedRepositoryImpl implements FeedRepository {
       Query query = _firestore
           .collection(garmentsCollection)
           .where(
-            'ownerId',
+            ownerIdField,
             isNotEqualTo: currentUserId,
           ) // No mostrar las prendas propias del usuario
           .where('isAvailable', isEqualTo: true)
-          .orderBy('ownerId')
+          .orderBy(ownerIdField)
           .orderBy(
             'createdAt',
             descending: true,

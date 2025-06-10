@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:swapparel/core/utils/date_formatter.dart';
 import 'package:swapparel/features/offer/data/model/offer_model.dart';
 import 'package:swapparel/features/offer/data/repositories/offer_repository.dart';
 import 'package:swapparel/features/inbox/chat/presentation/screens/chat_screen.dart';
@@ -35,8 +36,7 @@ class ChatDetailProvider extends ChangeNotifier {
       "ChatDetailProvider: INSTANCE CONSTRUCTED for effectiveUser: $effectiveUserId. CurrentChatId: $_currentChatId (debería estar vacío inicialmente)",
     );
   }
-  List<ChatTimelineItem> _timelineItems = [];
-  List<ChatTimelineItem> get timelineItems => _timelineItems;
+  List<ChatTimelineItem> get timelineItems => groupedTimelineItems;
   List<MessageModel> _messages = [];
   bool _isLoadingMessages = false;
   bool _isSendingMessage = false;
@@ -73,7 +73,6 @@ class ChatDetailProvider extends ChangeNotifier {
     // Limpiar datos anteriores si el chatId cambia o es la primera vez para este provider
     _messages = [];
     _offersList = [];
-    _timelineItems = [];
     _match = null;
     _errorMessage = null;
 
@@ -116,8 +115,7 @@ class ChatDetailProvider extends ChangeNotifier {
             _messages = loadedMessages;
             _isLoadingMessages = false;
             _errorMessage = null;
-            _updateTimeline();
-            //notifyListeners();
+            notifyListeners();
 
             if (effectiveUserId != null) {
               print(
@@ -192,7 +190,7 @@ class ChatDetailProvider extends ChangeNotifier {
               "ChatDetailProvider: listenToOffers - OFFERS RECEIVED for '$matchId'. Count: ${offers.length}",
             );
             _offersList = offers;
-            _updateTimeline(); 
+            notifyListeners();
           },
           onError: (error) {
             print(
@@ -271,7 +269,7 @@ class ChatDetailProvider extends ChangeNotifier {
         "ChatDetailProvider: listenToMatchDetails - Invalid matchId. Not subscribing.",
       );
       _match = null; // Limpiar match si el ID es inválido
-      _updateTimeline(); // Actualizar timeline por si acaso
+      notifyListeners();
       return;
     }
 
@@ -279,9 +277,7 @@ class ChatDetailProvider extends ChangeNotifier {
     notifyListeners();
     _matchSubscription?.cancel();
     _matchSubscription = _matchRepository
-        .getMatchStream(
-          matchId,
-        ) 
+        .getMatchStream(matchId)
         .listen(
           (matchData) {
             print(
@@ -289,7 +285,7 @@ class ChatDetailProvider extends ChangeNotifier {
             );
             _match = matchData;
             _isLoadingMatch = false;
-            _updateTimeline();
+            notifyListeners();
           },
           onError: (error) {
             print(
@@ -298,8 +294,7 @@ class ChatDetailProvider extends ChangeNotifier {
             _errorMessage = "Error al cargar detalles del chat: $error";
             _match = null;
             _isLoadingMatch = false;
-            _updateTimeline();
-            notifyListeners(); 
+            notifyListeners();
           },
         );
     print(
@@ -307,35 +302,17 @@ class ChatDetailProvider extends ChangeNotifier {
     );
   }
 
-  void markRatingGivenForCurrentUser() {
-    if (_match != null &&
-        effectiveUserId != null &&
-        _match!.hasUserRated.containsKey(effectiveUserId!)) {
-      final newHasUserRated = Map<String, bool>.from(_match!.hasUserRated);
-      newHasUserRated[effectiveUserId!] = true;
-
-
-      _match = _match!.copyWith(hasUserRated: newHasUserRated);
-      print(
-        "ChatDetailProvider: markRatingGivenForCurrentUser - Local match updated. Calling _updateTimeline.",
-      );
-      _updateTimeline();
-    }
-  }
-
-  void _updateTimeline() {
-    print(
-      "ChatDetailProvider: _updateTimeline CALLED for chat '$_currentChatId'. Messages: ${_messages.length}, Offers: ${_offersList.length}",
-    );
+  List<ChatTimelineItem> get groupedTimelineItems {
+    // 1. Combina todas las fuentes de datos en una sola lista de items
     List<ChatTimelineItem> combinedItems = [];
 
-    for (var message in _messages) {
-      combinedItems.add(MessageItem(message));
-    }
-    for (var offer in _offersList) {
-      combinedItems.add(OfferItem(offer));
-    }
+    // Añadir mensajes
+    combinedItems.addAll(_messages.map((m) => MessageItem(m)));
 
+    // Añadir ofertas
+    combinedItems.addAll(_offersList.map((o) => OfferItem(o)));
+
+    // Añadir la tarjeta de valoración si las condiciones se cumplen
     if (effectiveUserId != null &&
         _match != null &&
         _match!.matchStatus == MatchStatus.completed &&
@@ -348,28 +325,61 @@ class ChatDetailProvider extends ChangeNotifier {
       final String userToRateName =
           _match!.participantDetails?[userToRateId]?['name'] ??
           "el otro usuario";
+
       combinedItems.add(
         RatingPromptItem(
           matchId: _match!.id,
           offerId: _match!.offerIdThatCompletedMatch!,
           userToRateId: userToRateId,
           userToRateName: userToRateName,
-          createdAt:
-              _match!.lastActivityAt ??
-              _match!.createdAt, 
+          createdAt: _match!.lastActivityAt ?? _match!.createdAt,
         ),
       );
     }
 
+    // 2. Ordena la lista combinada por fecha
     combinedItems.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-    _timelineItems = combinedItems;
-    print(
-      "ChatDetailProvider: _updateTimeline - Total timeline items: ${_timelineItems.length}",
-    );
-    notifyListeners(); // Notificar a la UI que la línea de tiempo ha cambiado
+    // 3. Inserta los separadores de fecha
+    if (combinedItems.isEmpty) return [];
+
+    final List<ChatTimelineItem> finalTimeline = [];
+    DateTime? lastDate;
+
+    for (final item in combinedItems) {
+      final DateTime currentDate = item.createdAt.toDate();
+
+      // Comprueba si es un nuevo día
+      if (lastDate == null || !DateFormatter.isSameDay(lastDate, currentDate)) {
+        finalTimeline.add(DateSeparatorItem(currentDate));
+      }
+
+      // Añade el item original (mensaje, oferta, etc.)
+      finalTimeline.add(item);
+
+      // Actualiza la última fecha vista
+      lastDate = currentDate;
+    }
+
+    return finalTimeline;
   }
 
+  void markRatingGivenForCurrentUser() {
+    if (_match != null &&
+        effectiveUserId != null &&
+        _match!.hasUserRated.containsKey(effectiveUserId!)) {
+      final newHasUserRated = Map<String, bool>.from(_match!.hasUserRated);
+      newHasUserRated[effectiveUserId!] = true;
+
+      _match = _match!.copyWith(hasUserRated: newHasUserRated);
+      print(
+        "ChatDetailProvider: markRatingGivenForCurrentUser - Local match updated. Calling _updateTimeline.",
+      );
+      notifyListeners();
+    }
+  }
+
+  
 
   @override
   void dispose() {

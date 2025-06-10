@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart'; // Importa si lo vas a usar
+import 'package:google_fonts/google_fonts.dart'; 
 
 class AppColors {
   static const Color primaryGreen = Color(0xFF6d8767); // Verde medio (ej: botones)
@@ -49,7 +49,7 @@ class AppTheme {
         bodySmall: GoogleFonts.poppins(color: AppColors.textSecondary),// Texto más pequeño o secundario (gris)
         labelLarge: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold), // Texto para botones
         labelSmall: GoogleFonts.poppins(color: AppColors.textSecondary),
-      ).apply( // Aplica colores por defecto si no se especifican arriba
+      ).apply( 
          bodyColor: AppColors.textPrimary,
          displayColor: AppColors.textPrimary,
       ),
@@ -62,7 +62,6 @@ class AppTheme {
         backgroundColor: AppColors.primaryGreen, // Fondo como el scaffold
         foregroundColor: AppColors.darkGreen, // Color de iconos y título
         elevation: 1, // Sin sombra
-        //centerTitle: true, 
         titleTextStyle: GoogleFonts.poppins( // Asegura el estilo del título
           color: AppColors.background,
           fontSize: 18,

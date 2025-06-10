@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:swapparel/app/config/constants/firestore_user_fields.dart';
+import 'package:swapparel/core/constants/firestore_user_fields.dart';
 
 class UserModel {
   final String id; // Corresponde al document ID (Firebase Auth UID)
@@ -49,21 +49,9 @@ class UserModel {
     if (data == null) {
       throw StateError('Missing data for UserModel id: ${doc.id}');
     }
-    print('UserModel.fromFirestore - Data for ${doc.id}:');
-    print('email: ${data[emailField]} (${data[emailField]?.runtimeType})');
-    print('name: ${data[nameField]} (${data[nameField]?.runtimeType})');
-    print(
-      'createdAt: ${data[createdAtField]} (${data[createdAtField]?.runtimeType})',
-    );
-    print(
-      'swapCount: ${data[swapCountField]} (${data[swapCountField]?.runtimeType})',
-    );
-    print(
-      'totalRatingStars: ${data[totalRatingStarsField]} (${data[totalRatingStarsField]?.runtimeType})',
-    );
-    print(
-      'numberOfRatings: ${data[numberOfRatingsField]} (${data[numberOfRatingsField]?.runtimeType})',
-    );
+
+    final dynamic totalRatingStarsValue = data[totalRatingStarsField];
+    final dynamic numberOfRatingsValue = data[numberOfRatingsField];
 
     return UserModel(
       id: doc.id,
@@ -74,8 +62,8 @@ class UserModel {
       createdAt: data[createdAtField],
       location: data[locationField],
       swapCount: data[swapCountField] ?? 0,
-      totalRatingStars: data[totalRatingStarsField] ?? 0.0,
-      numberOfRatings: data[numberOfRatingsField] ?? 0,
+      totalRatingStars: (totalRatingStarsValue as num?)?.toDouble() ?? 0.0,
+      numberOfRatings: (numberOfRatingsValue as num?)?.toInt() ?? 0,
     );
   }
 
@@ -87,4 +75,3 @@ class UserModel {
     return totalRatingStars! / numberOfRatings; // double / int da double
   }
 }
- 

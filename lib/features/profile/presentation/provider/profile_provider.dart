@@ -1,8 +1,8 @@
 import 'package:image_picker/image_picker.dart';
-import 'package:swapparel/app/config/constants/firestore_collections.dart';
+import 'package:swapparel/core/constants/firestore_collections.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Para DocumentSnapshot
-import 'package:swapparel/app/config/constants/firestore_user_fields.dart';
+import 'package:swapparel/core/constants/firestore_user_fields.dart';
 import '../../data/repositories/profile_repository.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../garment/data/models/garment_model.dart';

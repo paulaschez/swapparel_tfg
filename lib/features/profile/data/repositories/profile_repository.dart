@@ -5,11 +5,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:swapparel/app/config/constants/firestore_user_fields.dart';
+import 'package:swapparel/core/constants/firestore_garment_fields.dart';
+import 'package:swapparel/core/constants/firestore_user_fields.dart';
 import 'package:uuid/uuid.dart';
 import '../../../auth/data/models/user_model.dart';
 import '../../../garment/data/models/garment_model.dart';
-import 'package:swapparel/app/config/constants/firestore_collections.dart';
+import 'package:swapparel/core/constants/firestore_collections.dart';
 
 abstract class ProfileRepository {
   Future<UserModel?> getUserProfile(String userId);
@@ -96,7 +97,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
     try {
       Query query = _firestore
           .collection(garmentsCollection)
-          .where('ownerId', isEqualTo: userId)
+          .where(ownerIdField, isEqualTo: userId)
           .where('isAvailable', isEqualTo: isAvailable)
           .orderBy('createdAt', descending: true);
 
@@ -125,15 +126,21 @@ class ProfileRepositoryImpl implements ProfileRepository {
     String? photoUrlToDelete,
   }) async {
     try {
+      Map<String, dynamic> finalDataToUpdate = Map.from(dataToUpdate);
+
       // 1. Eliminar la foto antigua de Storage si se proporcionó la URL
       if (photoUrlToDelete != null && photoUrlToDelete.isNotEmpty) {
         try {
-          Reference imageRef = _storage.refFromURL(photoUrlToDelete);
+         /*  Reference imageRef = _storage.refFromURL(photoUrlToDelete);
           print(
             "ProfileRepo: Eliminando imagen de Storage: $photoUrlToDelete (Ruta: ${imageRef.fullPath})",
           );
-          await imageRef.delete(); 
-          print("ProfileRepo: Imagen eliminada de Storage: $photoUrlToDelete");
+          await imageRef.delete();
+          print("ProfileRepo: Imagen eliminada de Storage: $photoUrlToDelete"); */
+          
+          if (!finalDataToUpdate.containsKey(photoUrlField)) {
+            finalDataToUpdate[photoUrlField] = null;
+          }
         } catch (e) {
           print(
             "ProfileRepo Warning - deleteOldPhoto: No se pudo eliminar $photoUrlToDelete. Error: $e",
@@ -142,11 +149,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
       }
 
       // 2. Actualizar los datos en Firestore (solo si hay algo que actualizar)
-      if (dataToUpdate.isNotEmpty) {
+      if (finalDataToUpdate.isNotEmpty) {
         await _firestore
             .collection(usersCollection)
             .doc(userId)
-            .update(dataToUpdate);
+            .update(finalDataToUpdate);
         print(
           "ProfileRepo: Datos de perfil actualizados en Firestore para $userId.",
         );

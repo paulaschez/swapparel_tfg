@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../models/garment_model.dart';
-import '../../../../app/config/constants/firestore_collections.dart';
+import '../../../../core/constants/firestore_collections.dart';
 
 abstract class GarmentRepository {
   Future<List<String>> uploadGarmentImages({
@@ -69,8 +69,7 @@ class GarmentRepositoryImpl implements GarmentRepository {
         .doc(garmentId);
     batch.delete(garmentRef);
 
-    // TODO: Eliminar referencias a esta prenda en otros lugares
-    //(como prendas favoritas de otros usuarios)
+    // Posible mejora: Eliminar referencias a esta prenda en otros lugares
 
     List<Future<void>> deleteImageFutures = [];
     for (String imageUrl in imageUrls) {
@@ -239,9 +238,7 @@ class GarmentRepositoryImpl implements GarmentRepository {
           print(
             "GarmentRepo: Fallo al eliminar las siguientes URLs de Storage: $failedDeletionUrls",
           );
-          // Podrías querer lanzar una excepción aquí si CUALQUIER imagen falló,
-          // o simplemente loguearlo y continuar.
-          // throw Exception("Algunas imágenes no pudieron ser eliminadas de Storage.");
+          
         }
       } catch (e) {
         print(

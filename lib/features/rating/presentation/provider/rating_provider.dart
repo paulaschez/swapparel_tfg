@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart'; // Para obtener el ratingUserId
-import 'package:swapparel/features/inbox/chat/presentation/provider/chat_detail_provider.dart'; // Para notificar que se ha valorado
+import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
+import 'package:swapparel/features/inbox/chat/presentation/provider/chat_detail_provider.dart'; 
 import '../../data/models/rating_model.dart';
 import '../../data/repositories/rating_repository.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; 

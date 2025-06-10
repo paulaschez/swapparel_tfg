@@ -6,6 +6,7 @@ import 'package:swapparel/app/config/theme/app_theme.dart';
 import 'package:swapparel/core/utils/dialog_utils.dart';
 import 'package:swapparel/core/utils/image_picker_utils.dart';
 import 'package:swapparel/core/utils/responsive_utils.dart';
+import 'package:swapparel/core/utils/validators.dart';
 import 'package:swapparel/features/auth/data/models/user_model.dart';
 import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
 import 'package:flutter/material.dart';
@@ -440,24 +441,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         context,
                         "Nombre:",
                         _nameController,
-                        (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Debe introducir un nombre.';
-                          }
-                          return null;
-                        },
+                        (value) => Validators.validateNotEmpty(value, 'Nombre'),
                       ),
                       const Divider(height: 1),
                       _buildProfileDetailRow(
                         context,
                         "Nombre de usuario:",
                         _usernameController,
-                        (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Debe introducir el nombre de usuario';
-                          }
-                          return null;
-                        },
+                        (value) => Validators.validateNotEmpty(value, 'Nombre de usuario'),
                       ),
                       const Divider(height: 1),
                       // Correo (no editable)

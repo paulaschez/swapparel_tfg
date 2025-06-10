@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:swapparel/features/auth/data/models/user_model.dart';
 import 'package:swapparel/features/inbox/notification/data/models/notification_model.dart';
 import 'package:swapparel/features/inbox/notification/data/repositories/notification_repository.dart';
-import '../../../../app/config/constants/firestore_collections.dart';
+import '../../../../core/constants/firestore_collections.dart';
 import '../models/match_model.dart'; // Tu MatchModel
 
 abstract class MatchRepository {
@@ -16,9 +16,8 @@ abstract class MatchRepository {
 
   // Obtiene los matches/conversaciones de un usuario
   Stream<List<MatchModel>> getMyMatches(String userId);
-  Stream<MatchModel?> getMatchStream(String matchId);
 
-  Future<MatchModel?> getMatchById(String matchId);
+  Stream<MatchModel?> getMatchStream(String matchId);
 
   Future<void> updateMatchFields(
     String matchId,
@@ -107,7 +106,7 @@ class MatchRepositoryImpl implements MatchRepository {
                 'likedGarmentOwnerId',
                 isEqualTo: likerUserId,
               ) // Y le gustó una prenda del usuario actual
-              .limit(1) // Solo necesitamos saber si existe al menos uno
+              .limit(1)
               .get();
       print(
         "MatchRepo DEBUG: QUERY likes collection successful. Docs found: ${likesQuery.docs.length}",
@@ -127,11 +126,11 @@ class MatchRepositoryImpl implements MatchRepository {
             userADoc as DocumentSnapshot<Map<String, dynamic>>,
           );
           participantDetailsData[likerUserId] = {
-            'name': userA.name, // O userA.displayName si lo prefieres
+            'name': userA.name,
             'photoUrl': userA.photoUrl,
           };
         } else {
-          // Fallback si no se encuentra el perfil (no debería pasar)
+          // Fallback si no se encuentra el perfil
           participantDetailsData[likerUserId] = {
             'name': 'Usuario $likerUserId',
             'photoUrl': null,
@@ -192,12 +191,10 @@ class MatchRepositoryImpl implements MatchRepository {
       } else {
         print("MatchRepo DEBUG: No mutual like found. Returning null.");
 
-        return null; // No hay match (aún)
+        return null;
       }
     } catch (e) {
-      print(
-        "MatchRepo CATCH Error - checkForAndCreateMatch: $e",
-      ); // Esto imprimirá el error de permiso
+      print("MatchRepo CATCH Error - checkForAndCreateMatch: $e");
       throw Exception("Failed to check for or create match.");
     }
   }
@@ -301,21 +298,6 @@ class MatchRepositoryImpl implements MatchRepository {
   }
 
   @override
-  Future<MatchModel?> getMatchById(String matchId) async {
-    if (matchId.isEmpty) return null;
-    try {
-      final querySnapshot =
-          await _firestore.collection(matchesCollection).doc(matchId).get();
-      final MatchModel? matchModel =
-          querySnapshot.exists ? MatchModel.fromFirestore(querySnapshot) : null;
-      return matchModel;
-    } catch (e) {
-      print("MatchRepo Error - getMatchById: $e");
-      throw Exception("Failed to get match.");
-    }
-  }
-
-  @override
   Future<void> updateMatchFields(
     String matchId,
     Map<String, dynamic> dataToUpdate, {
@@ -356,7 +338,9 @@ class MatchRepositoryImpl implements MatchRepository {
       throw Exception("Failed to update match fields for $matchId.");
     }
   }
-Future<MatchModel?> checkForMatchAndNotify({
+
+  @override
+  Future<MatchModel?> checkForMatchAndNotify({
     required String likerUserId,
     required String likedGarmentOwnerId,
     required String likedGarmentId,
@@ -364,7 +348,8 @@ Future<MatchModel?> checkForMatchAndNotify({
     String? likerPhotoUrl,
     required String likedGarmentOwnerUsername,
   }) async {
-    final MatchModel? match = await checkForAndCreateMatch( // Tu método existente
+    final MatchModel? match = await checkForAndCreateMatch(
+      //
       likerUserId: likerUserId,
       likedGarmentOwnerId: likedGarmentOwnerId,
       likedGarmentId: likedGarmentId,
@@ -374,9 +359,11 @@ Future<MatchModel?> checkForMatchAndNotify({
       final Duration timeSinceCreation = DateTime.now().difference(
         match.createdAt.toDate(),
       );
-      final bool isNewlyCreatedOrReactivated = timeSinceCreation.inSeconds < 5; // Umbral más generoso
+      final bool isNewlyCreatedOrReactivated = timeSinceCreation.inSeconds < 5;
 
-      if ((match.matchStatus == MatchStatus.active && isNewlyCreatedOrReactivated) || match.matchStatus == MatchStatus.completed) {
+      if ((match.matchStatus == MatchStatus.active &&
+              isNewlyCreatedOrReactivated) ||
+          match.matchStatus == MatchStatus.completed) {
         print("MatchRepository: ¡ES UN MATCH Y SE NOTIFICARÁ! ID: ${match.id}");
 
         // Notificación para el usuario actual (likerUserId)
@@ -385,11 +372,13 @@ Future<MatchModel?> checkForMatchAndNotify({
           recipientId: likerUserId,
           type: NotificationType.match,
           relatedUserId: likedGarmentOwnerId,
-          relatedUserName: likedGarmentOwnerUsername, // Necesitas este dato
+          relatedUserName: likedGarmentOwnerUsername,
           createdAt: Timestamp.now(),
-          entityId: match.id, // Podrías usar el ID del match
+          entityId: match.id,
         );
-        await _notificationRepository.createNotification(matchNotificationForLiker);
+        await _notificationRepository.createNotification(
+          matchNotificationForLiker,
+        );
 
         // Notificación para el dueño de la prenda (likedGarmentOwnerId)
         final matchNotificationForOwner = NotificationModel(
@@ -397,21 +386,27 @@ Future<MatchModel?> checkForMatchAndNotify({
           recipientId: likedGarmentOwnerId,
           type: NotificationType.match,
           relatedUserId: likerUserId,
-          relatedUserName: likerUsername, // Dato del liker
+          relatedUserName: likerUsername,
           createdAt: Timestamp.now(),
           entityId: match.id,
         );
-        await _notificationRepository.createNotification(matchNotificationForOwner);
+        await _notificationRepository.createNotification(
+          matchNotificationForOwner,
+        );
         return match; // Devolver el match si se notificó
       } else if (match.matchStatus == MatchStatus.completed) {
-          print("MatchRepository: Match encontrado pero ya estaba completado. ID: ${match.id}");
-      } else if (match.matchStatus == MatchStatus.active && !isNewlyCreatedOrReactivated) {
-          print("MatchRepository: Match activo encontrado pero no es nuevo ni reactivado recientemente. ID: ${match.id}");
+        print(
+          "MatchRepository: Match encontrado pero ya estaba completado. ID: ${match.id}",
+        );
+      } else if (match.matchStatus == MatchStatus.active &&
+          !isNewlyCreatedOrReactivated) {
+        print(
+          "MatchRepository: Match activo encontrado pero no es nuevo ni reactivado recientemente. ID: ${match.id}",
+        );
       }
     }
-    return null; // Devolver null si no hubo un "nuevo" match notificable
+    return null;
   }
-
 }
 
 extension DocumentSnapshotExtension on DocumentSnapshot {

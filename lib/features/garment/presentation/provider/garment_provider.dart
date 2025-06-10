@@ -127,7 +127,7 @@ class GarmentProvider extends ChangeNotifier {
     required List<String> existingImageUrlsToKeep,
   }) async {
     if (_authProvider.currentUserId == null) {
-      //TODO: /* ... error ... */
+      _setUploadError("Error: No hay un usuario loggeado.");
       return false;
     }
     _setUploading(true);

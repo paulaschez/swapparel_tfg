@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:swapparel/core/utils/image_picker_utils.dart';
+import 'package:swapparel/core/utils/validators.dart';
 import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
 import 'package:swapparel/features/garment/data/models/garment_model.dart';
 import 'package:swapparel/features/garment/presentation/provider/garment_detail_provider.dart';
@@ -726,6 +727,11 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
                           label: "Nombre de la prenda*",
                           controller: _nameController,
                           hint: "Ej: Camisa de flores vintage",
+                          validator:
+                              (value) => Validators.validateNotEmpty(
+                                value,
+                                'Nombre de la prenda',
+                              ),
                         ),
                         _buildTextField(
                           label: "Descripción",
@@ -749,7 +755,8 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
                           onChanged:
                               (val) => setState(() => _selectedSize = val),
                           validator:
-                              (val) => val == null ? "Campo requerido" : null,
+                              (val) =>
+                                  Validators.validateDropdown(val, 'talla'),
                         ),
                         _buildDropdownField(
                           label: "Condición*",
@@ -759,7 +766,8 @@ class _AddEditGarmentScreenState extends State<AddEditGarmentScreen> {
                           onChanged:
                               (val) => setState(() => _selectedCondition = val),
                           validator:
-                              (val) => val == null ? "Campo requerido" : null,
+                              (val) =>
+                                  Validators.validateDropdown(val, 'condición'),
                         ),
                         _buildTextField(
                           label: "Marca (Opcional)",
@@ -922,7 +930,7 @@ class EditableImage {
     : type = ImageSourceType.file,
       networkUrl = null,
       webBytes = null,
-      id = localXFile?.path; // O localXFile.name para web
+      id = localXFile?.path; 
 
   EditableImage.web(
     this.localXFile,
@@ -930,13 +938,13 @@ class EditableImage {
   ) // localXFile para metadata, webBytes para mostrar
   : type = ImageSourceType.webBytes,
       networkUrl = null,
-      id = localXFile?.path; // O localXFile.name
+      id = localXFile?.path; 
 
   // Getter para facilitar la visualización
   dynamic get displaySource {
     if (type == ImageSourceType.network) return networkUrl;
     if (type == ImageSourceType.file) {
-      return File(localXFile!.path); // ¡Cuidado con web!
+      return File(localXFile!.path); 
     }
     if (type == ImageSourceType.webBytes) return webBytes;
     return null;

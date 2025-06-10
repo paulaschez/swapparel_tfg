@@ -1,9 +1,8 @@
-// lib/features/inbox/chat/presentation/widgets/outgoing_message_bubble.dart
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Para formatear el timestamp
-import '../../../../../app/config/theme/app_theme.dart'; // Para AppColors
-import '../../../../../core/utils/responsive_utils.dart'; // Para fuentes
-import '../../data/models/message_model.dart'; // Importa tu MessageModel
+import 'package:swapparel/core/utils/date_formatter.dart'; 
+import '../../../../../app/config/theme/app_theme.dart'; 
+import '../../../../../core/utils/responsive_utils.dart'; 
+import '../../data/models/message_model.dart'; 
 
 class OutgoingMessageBubble extends StatelessWidget {
   final MessageModel message;
@@ -14,11 +13,12 @@ class OutgoingMessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final double bubbleMaxWidth = screenSize.width * 0.75;
+     final String formattedDate = DateFormatter.formatMessageBubbleTimestamp(message.timestamp);
 
     return Align(
       alignment: Alignment.centerRight, 
       child: Container(
-        constraints: BoxConstraints(maxWidth: bubbleMaxWidth), // Limita el ancho
+        constraints: BoxConstraints(maxWidth: bubbleMaxWidth),
         margin: EdgeInsets.only(
           left: screenSize.width * 0.15, 
           right: ResponsiveUtils.fontSize(context, baseSize: 8, maxSize: 10),
@@ -34,7 +34,7 @@ class OutgoingMessageBubble extends StatelessWidget {
             topRight: Radius.circular(16),
             bottomLeft: Radius.circular(16),
           ),
-          boxShadow: [ // Sombra sutil opcional
+          boxShadow: [ 
             BoxShadow(
               color: Colors.black.withValues(alpha:0.05),
               blurRadius: 3,
@@ -42,20 +42,20 @@ class OutgoingMessageBubble extends StatelessWidget {
             )
           ]
         ),
-        child: Column( // Para poner el texto y debajo el timestamp
-          crossAxisAlignment: CrossAxisAlignment.end, // Alinea el timestamp a la derecha
-          mainAxisSize: MainAxisSize.min, // Para que la columna tome el tamaño del contenido
+        child: Column( 
+          crossAxisAlignment: CrossAxisAlignment.end, 
+          mainAxisSize: MainAxisSize.min, 
           children: [
             Text(
               message.text,
               style: TextStyle(
-                color: AppColors.darkGreen, // Texto oscuro sobre fondo claro
+                color: AppColors.darkGreen, 
                 fontSize: ResponsiveUtils.fontSize(context, baseSize: 15, maxSize: 17),
               ),
             ),
             SizedBox(height: ResponsiveUtils.fontSize(context, baseSize: 3, maxSize: 5)),
             Text(
-              DateFormat('HH:mm').format(message.timestamp.toDate()), // Formato HH:mm
+             formattedDate, 
               style: TextStyle(
                 color: AppColors.darkGreen.withValues(alpha:0.7),
                 fontSize: ResponsiveUtils.fontSize(context, baseSize: 10, maxSize: 12),

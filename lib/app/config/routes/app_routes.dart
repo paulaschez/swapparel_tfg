@@ -1,6 +1,5 @@
 class AppRoutes {
   // Rutas de autenticacion
-  static const String splash = '/'; //TODO HACER PANTALLA SPLASH
   static const String login = '/login';
   static const String register = '/register';
   static const String forgotPassword = '/forgot-password';

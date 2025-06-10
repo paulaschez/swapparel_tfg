@@ -6,7 +6,6 @@ import 'package:swapparel/core/utils/responsive_utils.dart';
 import 'package:swapparel/features/inbox/notification/presentation/widgets/notification_card.dart';
 import '../provider/notification_provider.dart';
 import '../../../notification/data/models/notification_model.dart'; //
-import 'package:timeago/timeago.dart' as timeago;
 
 class NotificationListScreen extends StatefulWidget {
   const NotificationListScreen({super.key});
@@ -19,8 +18,6 @@ class _NotificationsScreenState extends State<NotificationListScreen> {
   @override
   void initState() {
     super.initState();
-    timeago.setLocaleMessages('es', timeago.EsMessages());
-    timeago.setLocaleMessages('es_short', timeago.EsShortMessages());
   }
 
   @override
@@ -76,7 +73,12 @@ class _NotificationsScreenState extends State<NotificationListScreen> {
               print("TODO: Nav to chat ${notification.entityId}");
             } else if (notification.type == NotificationType.like &&
                 notification.relatedUserId != null) {
-              context.push(AppRoutes.profile.replaceFirst(':userId', notification.relatedUserId!));
+              context.push(
+                AppRoutes.profile.replaceFirst(
+                  ':userId',
+                  notification.relatedUserId!,
+                ),
+              );
               print("Navigating to profile ${notification.relatedUserId}");
             } else if (notification.relatedGarmentId != null) {
               // Navegar al detalle de la prenda si es una notificación general sobre una prenda

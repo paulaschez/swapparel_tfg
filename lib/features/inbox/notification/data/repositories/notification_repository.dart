@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../../../app/config/constants/firestore_collections.dart';
+import '../../../../../core/constants/firestore_collections.dart';
 import '../models/notification_model.dart';
 
 abstract class NotificationRepository {

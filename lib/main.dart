@@ -1,3 +1,4 @@
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:swapparel/app/config/routes/app_router.dart';
 import 'package:swapparel/features/auth/presentation/provider/auth_provider.dart';
 import 'package:swapparel/features/feed/data/repositories/feed_repository.dart';
@@ -23,13 +24,16 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:swapparel/features/rating/data/repositories/rating_repository.dart';
 import 'package:swapparel/features/rating/presentation/provider/rating_provider.dart';
+import 'package:timeago/timeago.dart' as timeago;
 import 'app/config/theme/app_theme.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'core/services/local_storage_service.dart';
 import 'features/auth/data/repositories/auth_repository.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
+  timeago.setLocaleMessages('es', timeago.EsMessages());
+  timeago.setLocaleMessages('es_short', timeago.EsShortMessages());
+
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
@@ -46,23 +50,18 @@ class MyAppInitializer extends StatelessWidget {
         // Singleton de FirebaseAuth, Firestore, FirebaseStorage y almacenamiento local
         Provider<FirebaseAuth>(create: (_) => FirebaseAuth.instance),
         Provider<FirebaseFirestore>(create: (_) => FirebaseFirestore.instance),
-        Provider<ILocalStorageService>(
-          create: (_) => LocalStorageServiceImpl(),
-        ),
         Provider<FirebaseStorage>(create: (_) => FirebaseStorage.instance),
 
         // Repositorios (Depende de los servicios anteriores)
-        ProxyProvider3<
+        ProxyProvider2<
           FirebaseAuth,
           FirebaseFirestore,
-          ILocalStorageService,
           AuthRepository
         >(
           update:
-              (_, auth, firestore, storageService, __) => AuthRepositoryImpl(
+              (_, auth, firestore, __) => AuthRepositoryImpl(
                 firebaseAuth: auth,
                 firestore: firestore,
-                localStorageService: storageService,
               ),
         ),
 
@@ -175,9 +174,8 @@ class MyAppInitializer extends StatelessWidget {
             }
           },
         ),
-        ChangeNotifierProxyProvider2<
+        ChangeNotifierProxyProvider<
           AuthProviderC,
-          GarmentRepository,
           GarmentProvider
         >(
           create:
@@ -188,7 +186,6 @@ class MyAppInitializer extends StatelessWidget {
           update: (
             context,
             authProvider,
-            garmentRepo,
             previousGarmentProvider,
           ) {
             if (previousGarmentProvider == null ||
@@ -196,7 +193,7 @@ class MyAppInitializer extends StatelessWidget {
                     previousGarmentProvider.authProvider.currentUserId) {
               return GarmentProvider(
                 authProvider: authProvider,
-                garmentRepository: garmentRepo,
+                garmentRepository: context.read<GarmentRepository>(),
               );
             }
             return previousGarmentProvider;
@@ -211,7 +208,6 @@ class MyAppInitializer extends StatelessWidget {
                 matchProvider: context.read<MatchProvider>(),
               ),
         ),
-        
 
         ChangeNotifierProxyProvider<AuthProviderC, NotificationProvider>(
           create: (context) {
@@ -224,45 +220,29 @@ class MyAppInitializer extends StatelessWidget {
           update: (context, auth, previous) {
             final newActualUserId = auth.currentUserId;
 
-            print("ProxyProvider for Notification: UPDATE called.");
-            print("  New Auth User ID from auth parameter: $newActualUserId");
-            if (previous != null) {
-              print(
-                "  Previous NotificationProvider was effective for User ID: ${previous.effectiveUserId}",
-              );
-            } else {
-              print("  Previous NotificationProvider instance is null.");
-            }
-
             if (previous == null ||
                 previous.effectiveUserId != newActualUserId) {
               print(
-                "  CONDITION MET: Recreating NotificationProvider for actual user: $newActualUserId",
+                "Recreating NotificationProvider for actual user: $newActualUserId",
               );
               return NotificationProvider(
                 notificationRepository: context.read<NotificationRepository>(),
                 authProvider: auth,
               );
             }
-
             print(
-              "  CONDITION NOT MET: Reusing previous NotificationProvider (was effective for ${previous.effectiveUserId}).",
+              "Reusing previous NotificationProvider (was effective for ${previous.effectiveUserId}).",
             );
             return previous;
           },
         ),
 
         ChangeNotifierProxyProvider<AuthProviderC, ChatListProvider>(
-          create: (context) {
-            final auth = context.read<AuthProviderC>();
-            print(
-              "ProxyProvider for ChatList: CREATING initial instance for effectiveUser: ${auth.currentUserId}",
-            );
-            return ChatListProvider(
-              matchRepository: context.read<MatchRepository>(),
-              authProvider: auth,
-            );
-          },
+          create:
+              (context) => ChatListProvider(
+                matchRepository: context.read<MatchRepository>(),
+                authProvider: context.read<AuthProviderC>(),
+              ),
           update: (
             BuildContext context,
             AuthProviderC auth,
@@ -270,96 +250,61 @@ class MyAppInitializer extends StatelessWidget {
           ) {
             final newActualUserId = auth.currentUserId;
 
-            print("ProxyProvider for ChatList: UPDATE called.");
-            print("  New Auth User ID from auth parameter: $newActualUserId");
-            if (previous != null) {
-              print(
-                "  Previous ChatListProvider was effective for User ID: ${previous.effectiveUserId}",
-              );
-            } else {
-              print("  Previous ChatListProvider instance is null.");
-            }
-
             if (previous == null ||
                 previous.effectiveUserId != newActualUserId) {
               print(
-                "  CONDITION MET: Recreating ChatListProvider for actual user: $newActualUserId",
+                "Recreating ChatListProvider for actual user: $newActualUserId",
               );
               return ChatListProvider(
                 matchRepository: context.read<MatchRepository>(),
                 authProvider: auth,
               );
             }
-
             print(
-              "  CONDITION NOT MET: Reusing previous ChatListProvider (was effective for ${previous.effectiveUserId}).",
+              "Reusing previous ChatListProvider (was effective for ${previous.effectiveUserId}).",
             );
             return previous;
           },
         ),
 
-        ChangeNotifierProxyProvider3<
+        ChangeNotifierProxyProvider<
           AuthProviderC,
-          MatchRepository,
-          OfferRepository,
           ChatDetailProvider
         >(
-          create: (context) {
-            final auth = context.read<AuthProviderC>();
-            print(
-              "ProxyProvider for ChatDetail: CREATING initial instance for effectiveUser: ${auth.currentUserId}",
-            );
-            return ChatDetailProvider(
-              chatRepository: context.read<ChatRepository>(),
-              authProvider: auth,
-              matchRepository: context.read<MatchRepository>(),
-              offerRepository: context.read<OfferRepository>(),
-            );
-          },
+          create:
+              (context) => ChatDetailProvider(
+                chatRepository: context.read<ChatRepository>(),
+                authProvider: context.read<AuthProviderC>(),
+                matchRepository: context.read<MatchRepository>(),
+                offerRepository: context.read<OfferRepository>(),
+              ),
           update: (
             BuildContext context,
             AuthProviderC auth,
-            MatchRepository matchRepo,
-            OfferRepository offerRepo,
             ChatDetailProvider? previous,
           ) {
             final newActualUserId = auth.currentUserId;
-
-            print("ProxyProvider for ChatDetail: UPDATE called.");
-            print("  New Auth User ID from auth parameter: $newActualUserId");
-            if (previous != null) {
-              print(
-                "  Previous ChatDetailProvider was effective for User ID: ${previous.effectiveUserId}",
-              );
-            } else {
-              print("  Previous ChatDetailProvider instance is null.");
-            }
             if (previous == null ||
                 previous.effectiveUserId != newActualUserId) {
               print(
-                "  CONDITION MET: Recreating ChatDetailProvider for actual user: $newActualUserId",
+                "Recreating ChatDetailProvider for actual user: $newActualUserId",
               );
               return ChatDetailProvider(
                 chatRepository: context.read<ChatRepository>(),
                 authProvider: auth,
-                matchRepository: matchRepo,
-                offerRepository: offerRepo,
+                matchRepository: context.read<MatchRepository>(),
+                offerRepository: context.read<OfferRepository>(),
               );
             }
 
             print(
-              "  CONDITION NOT MET: Reusing previous ChatDetailProvider (was effective for ${previous.effectiveUserId}).",
+              " Reusing previous ChatDetailProvider (was effective for ${previous.effectiveUserId}).",
             );
             return previous;
           },
         ),
-        ChangeNotifierProxyProvider6<
+        ChangeNotifierProxyProvider<
           AuthProviderC,
-          OfferRepository,
-          MatchRepository,
-          GarmentRepository,
-          ProfileRepository,
-          NotificationRepository,
           OfferProvider
         >(
           create:
@@ -375,22 +320,17 @@ class MyAppInitializer extends StatelessWidget {
           update: (
             context,
             auth,
-            offerRepo,
-            matchRepo,
-            garmentRepo,
-            profileRepo,
-            notificationRepo,
             previous,
           ) {
             if (previous == null ||
                 auth.currentUserId != previous.authProvider.currentUserId) {
               return OfferProvider(
                 authProvider: auth,
-                offerRepository: offerRepo,
-                matchRepository: matchRepo,
-                garmentRepository: garmentRepo,
-                profileRepository: profileRepo,
-                notificationRepository: notificationRepo,
+                offerRepository: context.read<OfferRepository>(),
+                matchRepository: context.read<MatchRepository>(),
+                garmentRepository: context.read<GarmentRepository>(),
+                profileRepository: context.read<ProfileRepository>(),
+                notificationRepository: context.read<NotificationRepository>(),
                 firestore: context.read<FirebaseFirestore>(),
               );
             }
@@ -402,13 +342,11 @@ class MyAppInitializer extends StatelessWidget {
           ChatDetailProvider,
           RatingProvider
         >(
-          create: (context) {
-            print("ProxyProvider for Rating: CREATING initial instance.");
-            return RatingProvider(
-              ratingRepository: context.read<RatingRepository>(),
-              authProvider: context.read<AuthProviderC>(),
-            );
-          },
+          create:
+              (context) => RatingProvider(
+                ratingRepository: context.read<RatingRepository>(),
+                authProvider: context.read<AuthProviderC>(),
+              ),
           update: (
             context,
             auth,
@@ -416,14 +354,10 @@ class MyAppInitializer extends StatelessWidget {
             RatingProvider? previous,
           ) {
             final newActualUserId = auth.currentUserId;
-            print(
-              "ProxyProvider for Rating: UPDATE called. AuthUser: $newActualUserId",
-            );
-
             if (previous == null ||
-                previous.authProvider.currentUserId != newActualUserId) {
+                previous.authProvider.currentUserId != auth.currentUserId) {
               print(
-                "  CONDITION MET: Recreating RatingProvider for user: $newActualUserId",
+                "Recreating RatingProvider for user: $newActualUserId",
               );
               final newRatingProvider = RatingProvider(
                 ratingRepository: context.read<RatingRepository>(),
@@ -437,10 +371,10 @@ class MyAppInitializer extends StatelessWidget {
               if (chatDetail != null) {
                 previous.setChatDetailProvider(chatDetail);
                 print(
-                  "  RatingProvider: Updated ChatDetailProvider reference.",
+                  "RatingProvider: Updated ChatDetailProvider reference.",
                 );
               }
-              print("  CONDITION NOT MET: Reusing previous RatingProvider.");
+              print("Reusing previous RatingProvider.");
               return previous;
             }
           },
@@ -476,6 +410,12 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: _appRouter.router,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('es', 'ES'), Locale('en', 'US')],
     );
   }
 }

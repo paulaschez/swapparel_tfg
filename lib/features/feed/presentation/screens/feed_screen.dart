@@ -31,29 +31,11 @@ class _FeedScreenState extends State<FeedScreen> {
 
         feedProvider.initializeFeed();
       }
-      final matchProvider = Provider.of<MatchProvider>(context, listen: false);
-      matchProvider.addListener(_handleMatchFeedback);
     });
   }
 
-  void _handleMatchFeedback() async {
-    final matchProvider = Provider.of<MatchProvider>(context, listen: false);
-    if (matchProvider.showMatchFeedback &&
-        matchProvider.lastCreatedMatch != null) {
-      if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showMatchAnimationOrDialog(matchProvider.lastCreatedMatch!);
-          matchProvider.consumeMatchFeedback();
-        });
-      } else {
-        matchProvider.consumeMatchFeedback();
-      }
-    }
-  }
-
-  Future<void> _showMatchAnimationOrDialog(MatchModel match) async {
+  Future<void> _showMatchDialog(MatchModel match) async {
     print("UI: ¡ES UN MATCH! Mostrando feedback para match ID: ${match.id}");
-
     // --- Obtener datos del OTRO participante del MatchModel ---
     String otherUserId = '';
     String otherUserName = "Alguien"; // Fallback name
@@ -90,7 +72,7 @@ class _FeedScreenState extends State<FeedScreen> {
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          backgroundColor: AppColors.lightGreen, 
+          backgroundColor: AppColors.lightGreen,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15.0),
           ),
@@ -143,7 +125,7 @@ class _FeedScreenState extends State<FeedScreen> {
                       Icons.favorite,
                       color: AppColors.likeRed,
                       size: 28,
-                    ), 
+                    ),
                   ),
                   CircleAvatar(
                     radius: ResponsiveUtils.avatarRadius(context) * 0.3,
@@ -279,6 +261,18 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   Widget build(BuildContext context) {
     final feedProvider = context.watch<FeedProvider>();
+    final matchProvider = context.watch<MatchProvider>();
+
+    if (matchProvider.showMatchFeedback &&
+        matchProvider.lastCreatedMatch != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && matchProvider.showMatchFeedback) {
+          print("FeedScreen build: Mostrando diálogo de match.");
+          _showMatchDialog(matchProvider.lastCreatedMatch!);
+          matchProvider.consumeMatchFeedback();
+        }
+      });
+    }
 
     final double horizontalPadding = ResponsiveUtils.horizontalPadding(context);
     final double verticalSpacing = ResponsiveUtils.largeVerticalSpacing(

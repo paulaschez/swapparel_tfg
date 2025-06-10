@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:swapparel/app/config/theme/app_theme.dart';
+import 'package:swapparel/core/utils/date_formatter.dart';
 import 'package:swapparel/core/utils/responsive_utils.dart';
 import 'package:swapparel/features/inbox/notification/data/models/notification_model.dart';
-import 'package:timeago/timeago.dart' as timeago;
 
 class NotificationCard extends StatelessWidget {
   final NotificationModel notification;
@@ -54,10 +54,7 @@ class NotificationCard extends StatelessWidget {
 
                   SizedBox(height: ResponsiveUtils.verticalSpacing(context)),
                   Text(
-                    timeago.format(
-                      notification.createdAt.toDate(),
-                      locale: 'es',
-                    ), 
+                   DateFormatter.formatListDate(notification.createdAt), 
                     style: TextStyle(
                       fontSize: ResponsiveUtils.fontSize(
                         context,
